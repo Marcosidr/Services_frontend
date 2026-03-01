@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   MapPin,
   Bell,
@@ -9,178 +9,189 @@ import {
   LogOut,
   Menu,
   X,
+  Sparkles,
 } from "lucide-react";
 
+const navItems = [
+  { to: "/", label: "Inicio" },
+  { to: "/profissionais", label: "Profissionais" },
+  { to: "/cadastrar-profissional", label: "Seja um Pro" },
+  { to: "/admin", label: "Admin" },
+];
+
 function Header() {
+  const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const isLoggedIn = true;
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setUserMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <nav
-      className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50"
-      translate="no"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
-            </div>
-            <span
-              style={{ fontWeight: 700, fontSize: "1.2rem" }}
-              className="text-gray-900"
-            >
-              Resolve<span className="text-blue-600">Aqui</span>
-            </span>
-          </Link>
+    <header className="sticky top-0 z-50" translate="no">
+      <div className="border-b border-primary/10 bg-white/90 backdrop-blur-md supports-[backdrop-filter]:bg-white/75">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-16 flex items-center justify-between gap-3">
+            <Link to="/" className="inline-flex items-center gap-2.5 shrink-0">
+              <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm">
+                <MapPin className="w-4 h-4" />
+              </span>
+              <span
+                className="text-primary tracking-tight"
+                style={{ fontWeight: 800, fontSize: "1.15rem" }}
+              >
+                Zen<span className="text-accent">try</span>
+              </span>
+            </Link>
 
-          <div className="hidden md:flex items-center gap-6">
-            <Link
-              to="/"
-              className="text-gray-600 hover:text-blue-600 transition-colors text-sm whitespace-nowrap"
-            >
-              Inicio
-            </Link>
-            <Link
-              to="/profissionais"
-              className="text-gray-600 hover:text-blue-600 transition-colors text-sm whitespace-nowrap"
-            >
-              Profissionais
-            </Link>
-            <Link
-              to="/cadastrar-profissional"
-              className="text-gray-600 hover:text-blue-600 transition-colors text-sm whitespace-nowrap"
-            >
-              Seja um Pro
-            </Link>
-            <Link
-              to="/admin"
-              className="text-gray-600 hover:text-blue-600 transition-colors text-sm whitespace-nowrap"
-            >
-              Admin
-            </Link>
-          </div>
+            <nav className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-gray-600 hover:text-primary hover:bg-primary/5"
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
 
-          <div className="flex items-center gap-3">
-            {isLoggedIn ? (
-              <>
-                <button className="relative p-2 text-gray-500 hover:text-blue-600 transition-colors">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full" />
-                </button>
+            <div className="flex items-center gap-2 shrink-0">
+            
 
-                <div className="relative">
+              {isLoggedIn ? (
+                <>
                   <button
-                    onClick={() => setUserMenuOpen((open) => !open)}
-                    className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                    className="relative p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                    aria-label="Notificacoes"
                   >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <User className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <span className="hidden md:block text-sm text-gray-700">
-                      Usuario
-                    </span>
+                    <Bell className="w-5 h-5" />
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
                   </button>
 
-                  {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
-                      <Link
-                        to="/painel"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <LayoutDashboard className="w-4 h-4" />
-                        Meu Painel
-                      </Link>
-                      <Link
-                        to="/admin"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <ShieldCheck className="w-4 h-4" />
-                        Admin
-                      </Link>
-                      <hr className="my-1 border-gray-100" />
-                      <Link
-                        to="/login"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Sair
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/login"
-                  className="text-sm text-gray-600 hover:text-blue-600 px-3 py-1.5 whitespace-nowrap"
-                >
-                  Entrar
-                </Link>
-                <Link
-                  to="/login"
-                  className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
-                >
-                  Cadastrar
-                </Link>
-              </div>
-            )}
+                  <div className="relative" ref={userMenuRef}>
+                    <button
+                      onClick={() => setUserMenuOpen((open) => !open)}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
+                    >
+                      <span className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center">
+                        <User className="w-4 h-4" />
+                      </span>
+                      <span className="hidden md:block text-sm text-gray-700">
+                        Usuario
+                      </span>
+                    </button>
 
-            <button
-              onClick={() => setMenuOpen((open) => !open)}
-              className="md:hidden p-2 text-gray-500 hover:text-gray-700"
-            >
-              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+                    {userMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                        <Link
+                          to="/painel"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          <LayoutDashboard className="w-4 h-4" />
+                          Meu Painel
+                        </Link>
+                        <Link
+                          to="/admin"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                          Admin
+                        </Link>
+                        <hr className="my-1 border-gray-100" />
+                        <Link
+                          to="/login"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sair
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="hidden md:flex items-center gap-2">
+                  <Link
+                    to="/login"
+                    className="text-sm text-gray-600 hover:text-primary px-3 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
+                  >
+                    Entrar
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="text-sm bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                  >
+                    Cadastrar
+                  </Link>
+                </div>
+              )}
+
+              <button
+                onClick={() => setMenuOpen((open) => !open)}
+                className="md:hidden p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                aria-label="Abrir menu"
+              >
+                {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3 flex flex-col gap-3">
-          <Link
-            to="/"
-            onClick={() => setMenuOpen(false)}
-            className="text-gray-700 py-2 border-b border-gray-100"
-          >
-            Inicio
-          </Link>
-          <Link
-            to="/profissionais"
-            onClick={() => setMenuOpen(false)}
-            className="text-gray-700 py-2 border-b border-gray-100"
-          >
-            Profissionais
-          </Link>
-          <Link
-            to="/cadastrar-profissional"
-            onClick={() => setMenuOpen(false)}
-            className="text-gray-700 py-2 border-b border-gray-100"
-          >
-            Seja um Pro
-          </Link>
-          <Link
-            to="/painel"
-            onClick={() => setMenuOpen(false)}
-            className="text-gray-700 py-2 border-b border-gray-100"
-          >
-            Meu Painel
-          </Link>
-          <Link
-            to="/admin"
-            onClick={() => setMenuOpen(false)}
-            className="text-gray-700 py-2"
-          >
-            Admin
-          </Link>
+        <div className="md:hidden border-b border-primary/10 bg-white/95 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-1">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-gray-700 hover:bg-primary/5 hover:text-primary"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+
+            <Link
+              to="/profissionais"
+              className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg bg-accent text-gray-900 px-3 py-2.5 text-sm hover:bg-accent/90 transition-colors"
+              style={{ fontWeight: 600 }}
+            >
+              <Sparkles className="w-4 h-4" />
+              Contratar agora
+            </Link>
+          </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 }
 
