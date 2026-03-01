@@ -215,7 +215,7 @@ import {
         </div>
 
         {/* ✅ Sem MapView/ProfessionalCard se você ainda não tem dados reais
-            Se você já tiver esses componentes, me manda eles que eu encaixo certinho */}
+             */}
         <div className="bg-white border border-gray-100 rounded-2xl p-6">
           <p className="text-gray-600">
             Aqui você pode mostrar o mapa e a lista assim que integrar o backend (profissionais por perto).
