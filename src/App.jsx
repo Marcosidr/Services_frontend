@@ -1,17 +1,8 @@
-import Header from "./app/componentes/header";
-import Footer from "./app/componentes/Footer";
-import Home from "./app/pages/Home";
+import { RouterProvider } from "react-router-dom";
+import { router } from "./app/routes";
 
 function App() {
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <div className="flex-1">
-        <Home />
-      </div>
-      <Footer />
-    </div>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;
