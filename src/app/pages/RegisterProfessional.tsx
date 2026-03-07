@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import {
   Upload,
   CheckCircle,
+  MapPin,
   ChevronRight,
   ChevronLeft,
   User,
@@ -256,10 +257,23 @@ export function RegisterProfessional() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-gray-900 mb-1">Cadastro de Profissional</h1>
-          <p className="text-gray-500 text-sm">
+          <div className="inline-flex items-center gap-3">
+            <span className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm">
+              <MapPin className="w-9 h-9" />
+            </span>
+
+            <span
+              className="text-primary tracking-tight"
+              style={{ fontWeight: 800, fontSize: "3.15rem" }}
+            >
+              Zen<span className="text-accent">try</span>
+            </span>
+          </div>
+        </div>
+        <div className="text-center mb-8">
+          <h2 className="text-center mb-8">
             Comece a receber clientes perto de você
-          </p>
+          </h2>
         </div>
 
         <div className="flex items-center justify-center mb-8">

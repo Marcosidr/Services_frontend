@@ -63,7 +63,12 @@ export function Contato() {
 
               <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
                 Entre em contato com a{" "}
-                <span className="text-primary">Zentry</span>
+                 <span
+                className="text-primary tracking-tight"
+                style={{ fontWeight: 800, fontSize: "3.15rem" }}
+              >
+                Zen<span className="text-accent">try</span>
+              </span>
               </h1>
 
               <p className="mt-4 text-lg text-slate-600 max-w-xl leading-relaxed">
