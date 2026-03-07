@@ -112,7 +112,7 @@ const statusConfig: Record<
   },
 };
 
-export default function UserDashboard() {
+ function UserDashboard() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<Tab>("pedidos");
@@ -325,18 +325,29 @@ export default function UserDashboard() {
   }
 
   if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
-        <p className="text-red-500 mb-4">{error}</p>
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <div className="bg-white border border-red-100 rounded-2xl shadow-sm p-8 max-w-md w-full text-center">
+        <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
+
+        <h2 className="text-slate-900 text-lg mb-2">
+          Falha ao carregar
+        </h2>
+
+        <p className="text-slate-500 text-sm mb-5">
+          {error}
+        </p>
+
         <button
           onClick={() => navigate(0)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-colors"
         >
           Tentar novamente
         </button>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -852,3 +863,4 @@ export default function UserDashboard() {
     </div>
   );
 }
+export default UserDashboard;
