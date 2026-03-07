@@ -143,7 +143,7 @@ function Footer() {
 
         <div className="mt-10 pt-5 border-t border-white/20 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-primary-foreground/80">
-            © {new Date().getFullYear()} ResolveAqui. Todos os direitos reservados.
+            © {new Date().getFullYear()} Zentry. Todos os direitos reservados.
           </p>
           <p className="text-xs text-primary-foreground/80">
             Desenvolvido para conectar quem precisa com quem resolve.

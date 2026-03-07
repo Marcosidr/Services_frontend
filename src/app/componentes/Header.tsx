@@ -13,17 +13,22 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { to: "/", label: "Inicio" },
+  { to: "/", label: "Início" },
   { to: "/profissionais", label: "Profissionais" },
-  { to: "/cadastrar-profissional", label: "Seja um Pro" },
- // { to: "/admin", label: "Admin" },
+  { to: "/contato", label: "Contato" },
+  // { to: "/admin", label: "Admin" },
 ];
+
+const readAuthState = () => {
+  if (typeof window === "undefined") return false;
+  return Boolean(window.localStorage.getItem("token"));
+};
 
 function Header() {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const isLoggedIn = true;
+  const [isLoggedIn, setIsLoggedIn] = useState(readAuthState);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,14 +39,41 @@ function Header() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
+
       if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setUserMenuOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      setIsLoggedIn(readAuthState());
+    };
+
+    syncAuthState();
+    window.addEventListener("storage", syncAuthState);
+
+    return () => {
+      window.removeEventListener("storage", syncAuthState);
+    };
+  }, [pathname]);
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("token");
+      window.localStorage.removeItem("user");
+    }
+
+    setIsLoggedIn(false);
+    setUserMenuOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50" translate="no">
@@ -52,6 +84,7 @@ function Header() {
               <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm">
                 <MapPin className="w-4 h-4" />
               </span>
+
               <span
                 className="text-primary tracking-tight"
                 style={{ fontWeight: 800, fontSize: "1.15rem" }}
@@ -79,13 +112,11 @@ function Header() {
             </nav>
 
             <div className="flex items-center gap-2 shrink-0">
-            
-
               {isLoggedIn ? (
                 <>
                   <button
                     className="relative p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
-                    aria-label="Notificacoes"
+                    aria-label="Notificações"
                   >
                     <Bell className="w-5 h-5" />
                     <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
@@ -99,8 +130,9 @@ function Header() {
                       <span className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center">
                         <User className="w-4 h-4" />
                       </span>
+
                       <span className="hidden md:block text-sm text-gray-700">
-                        Usuario
+                        Usuário
                       </span>
                     </button>
 
@@ -113,6 +145,7 @@ function Header() {
                           <LayoutDashboard className="w-4 h-4" />
                           Meu Painel
                         </Link>
+
                         <Link
                           to="/admin"
                           className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
@@ -120,9 +153,12 @@ function Header() {
                           <ShieldCheck className="w-4 h-4" />
                           Admin
                         </Link>
+
                         <hr className="my-1 border-gray-100" />
+
                         <Link
                           to="/login"
+                          onClick={handleLogout}
                           className="flex items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"
                         >
                           <LogOut className="w-4 h-4" />
@@ -140,6 +176,7 @@ function Header() {
                   >
                     Entrar
                   </Link>
+
                   <Link
                     to="/login"
                     className="text-sm bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"

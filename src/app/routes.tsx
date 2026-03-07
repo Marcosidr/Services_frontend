@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import RegisterProfessional from "./pages/RegisterProfessional";
 import UserDashboard from "./pages/UserDashboard";
 import AdminPainel from "./pages/AdminPainel";
+import Contato from "./pages/contato";
 
 export const router = createBrowserRouter([
   {
@@ -16,8 +17,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "profissionais", element: <SearchPage /> },
+      { path: "contato", element: <Contato /> },
       { path: "profissional/:id", element: <ProfessionalProfile /> },
-      { path: "cadastrar-profissional", element: <RegisterProfessional /> },
       { path: "painel", element: <UserDashboard /> },
       { path: "admin", element: <AdminPainel /> },
     ],
@@ -25,5 +26,9 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <Login />,
+  },
+  {
+    path: "/cadastrar-profissional",
+    element: <RegisterProfessional />,
   },
 ]);
