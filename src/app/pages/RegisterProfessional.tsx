@@ -257,7 +257,11 @@ export function RegisterProfessional() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="inline-flex items-center gap-3 transition-transform duration-200 hover:scale-105 active:scale-100"
+          >
             <span className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-sm">
               <MapPin className="w-9 h-9" />
             </span>
@@ -268,12 +272,16 @@ export function RegisterProfessional() {
             >
               Zen<span className="text-accent">try</span>
             </span>
-          </div>
+          </button>
+          <p className="mt-2 text-xs text-gray-500">
+            Clique na logo para voltar ao site
+          </p>
         </div>
         <div className="text-center mb-8">
           <h2 className="text-center mb-8">
             Comece a receber clientes perto de você
           </h2>
+          
         </div>
 
         <div className="flex items-center justify-center mb-8">
@@ -690,6 +698,7 @@ export function RegisterProfessional() {
               <ChevronLeft className="w-4 h-4" />
               Voltar
             </button>
+            
 
             {step < 4 ? (
               <button
