@@ -16,7 +16,7 @@ const navItems = [
   { to: "/", label: "Inicio" },
   { to: "/profissionais", label: "Profissionais" },
   { to: "/cadastrar-profissional", label: "Seja um Pro" },
-  { to: "/admin", label: "Admin" },
+ // { to: "/admin", label: "Admin" },
 ];
 
 function Header() {
