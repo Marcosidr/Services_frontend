@@ -15,6 +15,7 @@ import {
 
 interface Category {
   id: number | string;
+  slug?: string;
   label: string;
   icon?: string;
 }
@@ -47,6 +48,55 @@ const steps = [
 ];
 
 const weekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const rawApiBaseUrl = (import.meta as { env?: Record<string, string | undefined> }).env
+  ?.VITE_API_BASE_URL;
+const apiBaseUrl = typeof rawApiBaseUrl === "string" ? rawApiBaseUrl.replace(/\/$/, "") : "";
+const apiPath = (path: string) => `${apiBaseUrl}${path}`;
+
+const categoryEmojiBySlug: Record<string, string> = {
+  PINTOR: "🎨",
+  PEDREIRO: "🧱",
+  ELETRICISTA: "⚡",
+  ENCANADOR: "🔧",
+  GESSEIRO: "🛠️",
+  MARCENEIRO: "🪚",
+  SERRALHEIRO: "🔩",
+  VIDRACEIRO: "🪟",
+  CHAVEIRO: "🗝️",
+  JARDINEIRO: "🌿",
+  MONTADOR_MOVEIS: "🪑",
+  TECNICO_AR_CONDICIONADO: "❄️",
+  TECNICO_INFORMATICA: "💻",
+  DIARISTA: "🧼",
+  REPAROS_GERAIS: "🔨",
+};
+
+function getCategoryEmoji(category: Category) {
+  const bySlug =
+    typeof category.slug === "string" ? categoryEmojiBySlug[category.slug.toUpperCase()] : undefined;
+  if (bySlug) return bySlug;
+
+  const iconKey = (category.icon ?? "").trim().toLowerCase();
+  const byIcon: Record<string, string> = {
+    paint: "🎨",
+    brick: "🧱",
+    bolt: "⚡",
+    pipe: "🔧",
+    tool: "🛠️",
+    saw: "🪚",
+    wrench: "🔩",
+    glass: "🪟",
+    key: "🗝️",
+    leaf: "🌿",
+    furniture: "🪑",
+    fan: "❄️",
+    computer: "💻",
+    clean: "🧼",
+    hammer: "🔨",
+  };
+
+  return byIcon[iconKey] ?? "🧰";
+}
 
 export function RegisterProfessional() {
   const navigate = useNavigate();
@@ -85,7 +135,7 @@ export function RegisterProfessional() {
         setLoadingCategories(true);
         setCategoriesError("");
 
-        const response = await fetch("/api/categories");
+        const response = await fetch(apiPath("/api/categories"));
 
         if (!response.ok) {
           throw new Error("Não foi possível carregar as categorias.");
@@ -183,34 +233,34 @@ export function RegisterProfessional() {
       setLoading(true);
       setSubmitError("");
 
-      const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("email", form.email);
-      formData.append("phone", form.phone);
-      formData.append("cpf", form.cpf);
-      formData.append("categoryIds", JSON.stringify(form.categoryIds));
-      formData.append("category", form.categoryIds[0] ?? "");
-      formData.append("categoryId", form.categoryIds[0] ?? "");
-      form.categoryIds.forEach((categoryId) => {
-        formData.append("categoryIds[]", categoryId);
-      });
-      formData.append("description", form.description);
-      formData.append("experience", form.experience);
-      formData.append("price", form.price);
-      formData.append("priceUnit", form.priceUnit);
-      formData.append("area", form.area);
-      formData.append("cep", form.cep);
-      formData.append("city", form.city);
-      formData.append("online", String(form.online));
+      const payload = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        cpf: form.cpf.trim(),
+        categoryIds: form.categoryIds,
+        description: form.description.trim(),
+        experience: form.experience,
+        price: form.price,
+        priceUnit: form.priceUnit,
+        area: form.area,
+        cep: form.cep.trim(),
+        city: form.city.trim(),
+        online: form.online,
+        documents: {
+          photoName: form.photo?.name ?? null,
+          rgName: form.rg?.name ?? null,
+          cpfDocName: form.cpfDoc?.name ?? null,
+          selfieName: form.selfie?.name ?? null,
+        },
+      };
 
-      if (form.photo) formData.append("photo", form.photo);
-      if (form.rg) formData.append("rg", form.rg);
-      if (form.cpfDoc) formData.append("cpfDoc", form.cpfDoc);
-      if (form.selfie) formData.append("selfie", form.selfie);
-
-      const response = await fetch("/api/professionals/register", {
+      const response = await fetch(apiPath("/api/professionals/register"), {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -472,9 +522,9 @@ export function RegisterProfessional() {
                             : "border-gray-200 text-gray-600 hover:border-gray-300"
                         }`}
                       >
-                        {category.icon && (
-                          <span className="text-lg">{category.icon}</span>
-                        )}
+                        <span className="text-lg" aria-hidden="true">
+                          {getCategoryEmoji(category)}
+                        </span>
                         <span>{category.label}</span>
                       </button>
                     ))}
