@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 interface Category {
-  id: string;
+  id: number | string;
   label: string;
   icon?: string;
 }
@@ -25,7 +25,7 @@ interface RegisterForm {
   phone: string;
   cpf: string;
   photo: File | null;
-  category: string;
+  categoryIds: string[];
   description: string;
   experience: string;
   price: string;
@@ -65,7 +65,7 @@ export function RegisterProfessional() {
     phone: "",
     cpf: "",
     photo: null,
-    category: "",
+    categoryIds: [],
     description: "",
     experience: "",
     price: "",
@@ -112,6 +112,21 @@ export function RegisterProfessional() {
     }));
   };
 
+  const toggleCategory = (categoryId: number | string) => {
+    const normalizedId = String(categoryId);
+
+    setForm((previous) => {
+      const alreadySelected = previous.categoryIds.includes(normalizedId);
+
+      return {
+        ...previous,
+        categoryIds: alreadySelected
+          ? previous.categoryIds.filter((id) => id !== normalizedId)
+          : [...previous.categoryIds, normalizedId],
+      };
+    });
+  };
+
   const validateStep = () => {
     if (step === 1) {
       if (!form.name.trim()) return "Informe o nome completo.";
@@ -122,7 +137,7 @@ export function RegisterProfessional() {
     }
 
     if (step === 2) {
-      if (!form.category) return "Selecione uma categoria.";
+      if (form.categoryIds.length === 0) return "Selecione ao menos uma categoria.";
       if (!form.description.trim()) return "Descreva seus serviços.";
     }
 
@@ -173,7 +188,12 @@ export function RegisterProfessional() {
       formData.append("email", form.email);
       formData.append("phone", form.phone);
       formData.append("cpf", form.cpf);
-      formData.append("category", form.category);
+      formData.append("categoryIds", JSON.stringify(form.categoryIds));
+      formData.append("category", form.categoryIds[0] ?? "");
+      formData.append("categoryId", form.categoryIds[0] ?? "");
+      form.categoryIds.forEach((categoryId) => {
+        formData.append("categoryIds[]", categoryId);
+      });
       formData.append("description", form.description);
       formData.append("experience", form.experience);
       formData.append("price", form.price);
@@ -424,7 +444,7 @@ export function RegisterProfessional() {
 
               <div>
                 <label className="text-xs text-gray-500 mb-2 block">
-                  Categoria *
+                  Categorias *
                 </label>
 
                 {loadingCategories ? (
@@ -445,9 +465,9 @@ export function RegisterProfessional() {
                       <button
                         key={category.id}
                         type="button"
-                        onClick={() => update("category", category.id)}
+                        onClick={() => toggleCategory(category.id)}
                         className={`flex items-center gap-2 p-3 rounded-xl border-2 text-sm text-left transition-all ${
-                          form.category === category.id
+                          form.categoryIds.includes(String(category.id))
                             ? "border-blue-500 bg-blue-50 text-blue-700"
                             : "border-gray-200 text-gray-600 hover:border-gray-300"
                         }`}
@@ -459,6 +479,12 @@ export function RegisterProfessional() {
                       </button>
                     ))}
                   </div>
+                )}
+
+                {form.categoryIds.length > 0 && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    {form.categoryIds.length} categoria(s) selecionada(s)
+                  </p>
                 )}
               </div>
 
