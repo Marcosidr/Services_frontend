@@ -8,7 +8,9 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
+import { getEmailValidationError, normalizeEmail } from "../utils/email";
 import { getPasswordValidationError } from "../utils/password";
+import { formatPhone, getPhoneValidationError, normalizePhone } from "../utils/phone";
 
 type AuthTab = "login" | "register";
 
@@ -55,8 +57,9 @@ interface AuthResponse {
   };
 
   const validateForm = () => {
-    if (!form.email.trim()) {
-      return "Informe seu e-mail.";
+    const emailValidationError = getEmailValidationError(form.email);
+    if (emailValidationError) {
+      return emailValidationError;
     }
 
     if (!form.password.trim()) {
@@ -70,6 +73,11 @@ interface AuthResponse {
 
       if (!form.phone.trim()) {
         return "Informe seu telefone.";
+      }
+
+      const phoneValidationError = getPhoneValidationError(form.phone);
+      if (phoneValidationError) {
+        return phoneValidationError;
       }
 
       if (!form.confirmPassword.trim()) {
@@ -109,13 +117,13 @@ interface AuthResponse {
       const payload =
         tab === "login"
           ? {
-              email: form.email,
+              email: normalizeEmail(form.email),
               password: form.password,
             }
           : {
               name: form.name,
-              email: form.email,
-              phone: form.phone,
+              email: normalizeEmail(form.email),
+              phone: normalizePhone(form.phone),
               password: form.password,
             };
 
@@ -256,6 +264,8 @@ interface AuthResponse {
                 placeholder="joao@email.com"
                 value={form.email}
                 onChange={(e) => updateField("email", e.target.value)}
+                pattern="^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$"
+                title="Informe um e-mail valido"
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary transition-colors"
               />
             </div>
@@ -271,7 +281,8 @@ interface AuthResponse {
                     type="tel"
                     placeholder="(11) 99999-9999"
                     value={form.phone}
-                    onChange={(e) => updateField("phone", e.target.value)}
+                    onChange={(e) => updateField("phone", formatPhone(e.target.value))}
+                    maxLength={15}
                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary transition-colors"
                   />
                 </div>

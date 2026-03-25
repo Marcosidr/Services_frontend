@@ -77,6 +77,12 @@ interface DashboardResponse {
   activeChatProfessional?: DashboardProfessional | null;
 }
 
+function getAuthorizationHeader() {
+  if (typeof window === "undefined") return {};
+  const token = window.localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 const statusConfig: Record<
   OrderStatus,
   {
@@ -148,7 +154,11 @@ const statusConfig: Record<
         setLoading(true);
         setError("");
 
-        const response = await fetch("/api/dashboard");
+        const response = await fetch("/api/dashboard", {
+          headers: {
+            ...getAuthorizationHeader(),
+          },
+        });
 
         if (!response.ok) {
           throw new Error("Não foi possível carregar o painel do usuário.");
@@ -215,6 +225,7 @@ const statusConfig: Record<
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...getAuthorizationHeader(),
         },
         body: JSON.stringify({
           professionalId: activeChatProfessional.id,
@@ -251,6 +262,7 @@ const statusConfig: Record<
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...getAuthorizationHeader(),
         },
         body: JSON.stringify({
           rating: selectedRating,
@@ -288,6 +300,9 @@ const statusConfig: Record<
     try {
       const response = await fetch(`/api/dashboard/orders/${orderId}/cancel`, {
         method: "POST",
+        headers: {
+          ...getAuthorizationHeader(),
+        },
       });
 
       if (!response.ok) {

@@ -13,6 +13,8 @@ import {
   Camera,
 } from "lucide-react";
 import { isValidCpf, normalizeCpf } from "../utils/cpf";
+import { getEmailValidationError, normalizeEmail } from "../utils/email";
+import { formatPhone, getPhoneValidationError, normalizePhone } from "../utils/phone";
 
 interface Category {
   id: number | string;
@@ -181,8 +183,11 @@ export function RegisterProfessional() {
   const validateStep = () => {
     if (step === 1) {
       if (!form.name.trim()) return "Informe o nome completo.";
-      if (!form.email.trim()) return "Informe o e-mail.";
+      const emailValidationError = getEmailValidationError(form.email);
+      if (emailValidationError) return emailValidationError;
       if (!form.phone.trim()) return "Informe o telefone.";
+      const phoneValidationError = getPhoneValidationError(form.phone);
+      if (phoneValidationError) return phoneValidationError;
       if (!form.cpf.trim()) return "Informe o CPF.";
       if (!isValidCpf(form.cpf)) return "Informe um CPF valido.";
       if (!form.photo) return "Envie uma foto profissional.";
@@ -237,8 +242,8 @@ export function RegisterProfessional() {
 
       const payload = {
         name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
+        email: normalizeEmail(form.email),
+        phone: normalizePhone(form.phone),
         cpf: normalizeCpf(form.cpf),
         categoryIds: form.categoryIds,
         description: form.description.trim(),
@@ -451,6 +456,8 @@ export function RegisterProfessional() {
                     value={form.email}
                     onChange={(e) => update("email", e.target.value)}
                     placeholder="email@exemplo.com"
+                    pattern="^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$"
+                    title="Informe um e-mail valido"
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
                   />
                 </div>
@@ -461,8 +468,9 @@ export function RegisterProfessional() {
                   </label>
                   <input
                     value={form.phone}
-                    onChange={(e) => update("phone", e.target.value)}
+                    onChange={(e) => update("phone", formatPhone(e.target.value))}
                     placeholder="(11) 99999-9999"
+                    maxLength={15}
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
                   />
                 </div>
