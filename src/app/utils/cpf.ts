@@ -2,6 +2,15 @@ export function normalizeCpf(cpf: string) {
   return cpf.replace(/\D/g, "");
 }
 
+export function formatCpf(cpf: string) {
+  const digits = normalizeCpf(cpf).slice(0, 11);
+
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
 function calculateCpfDigit(base: string, startFactor: number) {
   let total = 0;
   let factor = startFactor;

@@ -8,6 +8,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
+import { formatCpf, isValidCpf, normalizeCpf } from "../utils/cpf";
 import { getEmailValidationError, normalizeEmail } from "../utils/email";
 import { getPasswordValidationError } from "../utils/password";
 import { formatPhone, getPhoneValidationError, normalizePhone } from "../utils/phone";
@@ -35,6 +36,7 @@ interface AuthResponse {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    cpf: "",
     phone: "",
     password: "",
     confirmPassword: "",
@@ -80,6 +82,14 @@ interface AuthResponse {
         return phoneValidationError;
       }
 
+      if (!form.cpf.trim()) {
+        return "Informe seu CPF.";
+      }
+
+      if (!isValidCpf(form.cpf)) {
+        return "Informe um CPF valido.";
+      }
+
       if (!form.confirmPassword.trim()) {
         return "Confirme sua senha.";
       }
@@ -123,6 +133,7 @@ interface AuthResponse {
           : {
               name: form.name,
               email: normalizeEmail(form.email),
+              cpf: normalizeCpf(form.cpf),
               phone: normalizePhone(form.phone),
               password: form.password,
             };
@@ -286,6 +297,23 @@ interface AuthResponse {
                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary transition-colors"
                   />
                 </div>
+              </div>
+            )}
+
+            {tab === "register" && (
+              <div>
+                <label className="text-xs text-gray-500 mb-1.5 block">
+                  CPF
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="000.000.000-00"
+                  value={form.cpf}
+                  onChange={(e) => updateField("cpf", formatCpf(e.target.value))}
+                  maxLength={14}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary transition-colors"
+                />
               </div>
             )}
 
