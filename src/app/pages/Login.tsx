@@ -275,8 +275,6 @@ interface AuthResponse {
                 placeholder="joao@email.com"
                 value={form.email}
                 onChange={(e) => updateField("email", e.target.value)}
-                pattern="^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$"
-                title="Informe um e-mail valido"
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary transition-colors"
               />
             </div>

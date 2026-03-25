@@ -456,8 +456,6 @@ export function RegisterProfessional() {
                     value={form.email}
                     onChange={(e) => update("email", e.target.value)}
                     placeholder="email@exemplo.com"
-                    pattern="^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$"
-                    title="Informe um e-mail valido"
                     className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
                   />
                 </div>
