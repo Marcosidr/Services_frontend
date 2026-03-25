@@ -8,6 +8,7 @@ import {
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
+import { getPasswordValidationError } from "../utils/password";
 
 type AuthTab = "login" | "register";
 
@@ -75,8 +76,9 @@ interface AuthResponse {
         return "Confirme sua senha.";
       }
 
-      if (form.password.length < 6) {
-        return "A senha deve ter pelo menos 6 caracteres.";
+      const passwordValidationError = getPasswordValidationError(form.password);
+      if (passwordValidationError) {
+        return passwordValidationError;
       }
 
       if (form.password !== form.confirmPassword) {
@@ -406,3 +408,5 @@ interface AuthResponse {
   );
 }
 export default Login;
+
+

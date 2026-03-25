@@ -12,6 +12,7 @@ import {
   FileText,
   Camera,
 } from "lucide-react";
+import { isValidCpf, normalizeCpf } from "../utils/cpf";
 
 interface Category {
   id: number | string;
@@ -183,6 +184,7 @@ export function RegisterProfessional() {
       if (!form.email.trim()) return "Informe o e-mail.";
       if (!form.phone.trim()) return "Informe o telefone.";
       if (!form.cpf.trim()) return "Informe o CPF.";
+      if (!isValidCpf(form.cpf)) return "Informe um CPF valido.";
       if (!form.photo) return "Envie uma foto profissional.";
     }
 
@@ -237,7 +239,7 @@ export function RegisterProfessional() {
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
-        cpf: form.cpf.trim(),
+        cpf: normalizeCpf(form.cpf),
         categoryIds: form.categoryIds,
         description: form.description.trim(),
         experience: form.experience,
