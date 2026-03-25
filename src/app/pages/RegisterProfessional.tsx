@@ -12,7 +12,7 @@ import {
   FileText,
   Camera,
 } from "lucide-react";
-import { isValidCpf, normalizeCpf } from "../utils/cpf";
+import { formatCpf, isValidCpf, normalizeCpf } from "../utils/cpf";
 import { getEmailValidationError, normalizeEmail } from "../utils/email";
 import { formatPhone, getPhoneValidationError, normalizePhone } from "../utils/phone";
 
@@ -42,6 +42,9 @@ interface RegisterForm {
   selfie: File | null;
   online: boolean;
 }
+
+type StepOneField = "name" | "email" | "phone" | "cpf";
+type StepOneErrors = Partial<Record<StepOneField, string>>;
 
 const steps = [
   { id: 1, label: "Dados pessoais", icon: User },
@@ -101,6 +104,36 @@ function getCategoryEmoji(category: Category) {
   return byIcon[iconKey] ?? "🧰";
 }
 
+function getStepOneErrors(form: RegisterForm) {
+  const errors: StepOneErrors = {};
+
+  if (!form.name.trim()) {
+    errors.name = "Informe o nome completo.";
+  }
+
+  const emailValidationError = getEmailValidationError(form.email);
+  if (emailValidationError) {
+    errors.email = emailValidationError;
+  }
+
+  if (!form.phone.trim()) {
+    errors.phone = "Informe o telefone.";
+  } else {
+    const phoneValidationError = getPhoneValidationError(form.phone);
+    if (phoneValidationError) {
+      errors.phone = phoneValidationError;
+    }
+  }
+
+  if (!form.cpf.trim()) {
+    errors.cpf = "Informe o CPF.";
+  } else if (!isValidCpf(form.cpf)) {
+    errors.cpf = "Informe um CPF valido.";
+  }
+
+  return errors;
+}
+
 export function RegisterProfessional() {
   const navigate = useNavigate();
 
@@ -111,6 +144,7 @@ export function RegisterProfessional() {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [categoriesError, setCategoriesError] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [stepOneTouched, setStepOneTouched] = useState<Partial<Record<StepOneField, boolean>>>({});
 
   const [form, setForm] = useState<RegisterForm>({
     name: "",
@@ -163,6 +197,17 @@ export function RegisterProfessional() {
       ...previous,
       [field]: value,
     }));
+
+    if (field === "name" || field === "email" || field === "phone" || field === "cpf") {
+      setStepOneTouched((previous) => ({
+        ...previous,
+        [field]: true
+      }));
+    }
+
+    if (submitError) {
+      setSubmitError("");
+    }
   };
 
   const toggleCategory = (categoryId: number | string) => {
@@ -180,16 +225,23 @@ export function RegisterProfessional() {
     });
   };
 
+  const touchStepOneField = (field: StepOneField) => {
+    setStepOneTouched((previous) => ({
+      ...previous,
+      [field]: true
+    }));
+  };
+
+  const stepOneErrors = getStepOneErrors(form);
+  const shouldShowStepOneError = (field: StepOneField) =>
+    step === 1 && Boolean(stepOneTouched[field] && stepOneErrors[field]);
+
   const validateStep = () => {
     if (step === 1) {
-      if (!form.name.trim()) return "Informe o nome completo.";
-      const emailValidationError = getEmailValidationError(form.email);
-      if (emailValidationError) return emailValidationError;
-      if (!form.phone.trim()) return "Informe o telefone.";
-      const phoneValidationError = getPhoneValidationError(form.phone);
-      if (phoneValidationError) return phoneValidationError;
-      if (!form.cpf.trim()) return "Informe o CPF.";
-      if (!isValidCpf(form.cpf)) return "Informe um CPF valido.";
+      if (stepOneErrors.name) return stepOneErrors.name;
+      if (stepOneErrors.email) return stepOneErrors.email;
+      if (stepOneErrors.phone) return stepOneErrors.phone;
+      if (stepOneErrors.cpf) return stepOneErrors.cpf;
       if (!form.photo) return "Envie uma foto profissional.";
     }
 
@@ -212,6 +264,15 @@ export function RegisterProfessional() {
   };
 
   const nextStep = () => {
+    if (step === 1) {
+      setStepOneTouched({
+        name: true,
+        email: true,
+        phone: true,
+        cpf: true
+      });
+    }
+
     const error = validateStep();
 
     if (error) {
@@ -444,9 +505,17 @@ export function RegisterProfessional() {
                   <input
                     value={form.name}
                     onChange={(e) => update("name", e.target.value)}
+                    onBlur={() => touchStepOneField("name")}
                     placeholder="Carlos Eduardo Silva"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                    className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none ${
+                      shouldShowStepOneError("name")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-blue-400"
+                    }`}
                   />
+                  {shouldShowStepOneError("name") && (
+                    <p className="mt-1 text-xs text-red-600">{stepOneErrors.name}</p>
+                  )}
                 </div>
 
                 <div>
@@ -455,9 +524,17 @@ export function RegisterProfessional() {
                     type="email"
                     value={form.email}
                     onChange={(e) => update("email", e.target.value)}
+                    onBlur={() => touchStepOneField("email")}
                     placeholder="email@exemplo.com"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                    className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none ${
+                      shouldShowStepOneError("email")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-blue-400"
+                    }`}
                   />
+                  {shouldShowStepOneError("email") && (
+                    <p className="mt-1 text-xs text-red-600">{stepOneErrors.email}</p>
+                  )}
                 </div>
 
                 <div>
@@ -467,20 +544,37 @@ export function RegisterProfessional() {
                   <input
                     value={form.phone}
                     onChange={(e) => update("phone", formatPhone(e.target.value))}
+                    onBlur={() => touchStepOneField("phone")}
                     placeholder="(11) 99999-9999"
                     maxLength={15}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                    className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none ${
+                      shouldShowStepOneError("phone")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-blue-400"
+                    }`}
                   />
+                  {shouldShowStepOneError("phone") && (
+                    <p className="mt-1 text-xs text-red-600">{stepOneErrors.phone}</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">CPF *</label>
                   <input
                     value={form.cpf}
-                    onChange={(e) => update("cpf", e.target.value)}
+                    onChange={(e) => update("cpf", formatCpf(e.target.value))}
+                    onBlur={() => touchStepOneField("cpf")}
                     placeholder="000.000.000-00"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                    maxLength={14}
+                    className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none ${
+                      shouldShowStepOneError("cpf")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-blue-400"
+                    }`}
                   />
+                  {shouldShowStepOneError("cpf") && (
+                    <p className="mt-1 text-xs text-red-600">{stepOneErrors.cpf}</p>
+                  )}
                 </div>
 
                 <div>
