@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -7,47 +7,139 @@ import {
   Shield,
   Clock,
   ChevronRight,
+  Sparkles
 } from "lucide-react";
+import { ProfessionalCard } from "../componentes/ProfessionalCard";
+import {
+  Category,
+  Professional,
+  normalizeCategory,
+  normalizeProfessional
+} from "../utils/professionals";
 
-// ✅ Nome do componente tem que começar com letra maiúscula
- function Home() {
+function getCategoryBadge(label: string) {
+  const parts = label
+    .trim()
+    .split(" ")
+    .filter(Boolean);
+
+  if (parts.length === 0) return "#";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+function Home() {
   const navigate = useNavigate();
 
-  // ✅ Estados mínimos pra não depender de “mock”
   const [searchQuery, setSearchQuery] = useState("");
   const [menuMessage, setMenuMessage] = useState<string | null>(null);
-
-  // ✅ Localização: começa como “não autorizada”
   const [locationGranted, setLocationGranted] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
-
-  // ✅ Se você tiver esses dados vindo de API depois, substitui aqui
-  const categories: Array<{ id: string; label: string; icon?: string }> = [];
+  const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [selectedProId, setSelectedProId] = useState<string | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
 
-  // ✅ Profissionais reais viriam do backend. Por enquanto vazio (sem fake).
-  const professionals: Array<{ id: string; online?: boolean }> = [];
-  const nearbyPros: Array<{ id: string }> = [];
-  const [selectedPro, setSelectedPro] = useState<any>(null);
+  async function loadHomeData(signal?: AbortSignal) {
+    setLoadingData(true);
+    setDataError(null);
 
-  // ✅ Pedir localização de verdade (sem inventar cidade)
+    try {
+      const [categoriesResponse, professionalsResponse] = await Promise.all([
+        fetch("/api/categories", { signal }),
+        fetch("/api/professionals", { signal })
+      ]);
+
+      if (!categoriesResponse.ok) {
+        throw new Error("Nao foi possivel carregar as categorias.");
+      }
+
+      if (!professionalsResponse.ok) {
+        throw new Error("Nao foi possivel carregar os profissionais.");
+      }
+
+      const categoriesPayload: unknown = await categoriesResponse.json();
+      const professionalsPayload: unknown = await professionalsResponse.json();
+
+      const parsedCategories = Array.isArray(categoriesPayload)
+        ? categoriesPayload
+            .map(normalizeCategory)
+            .filter((category): category is Category => Boolean(category))
+            .filter((category) => category.is_active !== false)
+        : [];
+
+      const parsedProfessionals = Array.isArray(professionalsPayload)
+        ? professionalsPayload
+            .map(normalizeProfessional)
+            .filter(
+              (professional): professional is Professional =>
+                Boolean(professional)
+            )
+        : [];
+
+      setCategories(parsedCategories);
+      setProfessionals(parsedProfessionals);
+      setMenuMessage(null);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      const message =
+        error instanceof Error ? error.message : "Erro ao carregar a pagina.";
+      setDataError(message);
+      setMenuMessage(message);
+    } finally {
+      setLoadingData(false);
+    }
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadHomeData(controller.signal);
+    return () => controller.abort();
+  }, []);
+
+  const visibleProfessionals = useMemo(() => {
+    if (!activeCategory) return professionals;
+    return professionals.filter((professional) =>
+      professional.categoryIds?.includes(activeCategory)
+    );
+  }, [professionals, activeCategory]);
+
+  const onlineCount = useMemo(
+    () => visibleProfessionals.filter((professional) => professional.online).length,
+    [visibleProfessionals]
+  );
+
+  const professionalsByCategory = useMemo(() => {
+    const countMap = new Map<string, number>();
+
+    professionals.forEach((professional) => {
+      professional.categoryIds?.forEach((categoryId) => {
+        countMap.set(categoryId, (countMap.get(categoryId) ?? 0) + 1);
+      });
+    });
+
+    return countMap;
+  }, [professionals]);
+
   async function handleLocationRequest() {
     setMenuMessage(null);
     setLocationLoading(true);
 
     try {
       if (!("geolocation" in navigator)) {
-        setMenuMessage("Seu navegador não suporta geolocalização.");
+        setMenuMessage("Seu navegador nao suporta geolocalizacao.");
         return;
       }
 
       navigator.geolocation.getCurrentPosition(
+        () => setLocationGranted(true),
         () => {
-          // Aqui você receberia lat/lng e buscaria profissionais por perto no backend
-          setLocationGranted(true);
-        },
-        () => {
-          setMenuMessage("Não foi possível obter sua localização.");
+          setMenuMessage("Nao foi possivel obter sua localizacao.");
           setLocationGranted(false);
         },
         { enableHighAccuracy: true, timeout: 10000 }
@@ -57,51 +149,48 @@ import {
     }
   }
 
-  // ✅ Buscar (sem fake) — aqui você pode navegar pra página de profissionais passando a query
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSearch(event: FormEvent) {
+    event.preventDefault();
 
-    const q = searchQuery.trim();
-    if (!q) {
-      setMenuMessage("Digite o serviço que você precisa.");
+    const query = searchQuery.trim();
+    if (!query) {
+      setMenuMessage("Digite o servico que voce precisa.");
       return;
     }
 
-    // Exemplo: manda a query pela URL
-    navigate(`/profissionais?q=${encodeURIComponent(q)}`);
+    navigate(`/profissionais?q=${encodeURIComponent(query)}`);
   }
 
-  // ✅ Categoria (sem fake)
   function handleCategory(categoryId: string) {
-    setActiveCategory(categoryId);
-    // Você pode navegar ou filtrar resultados depois
-    navigate(`/profissionais?cat=${encodeURIComponent(categoryId)}`);
+    setActiveCategory((current) => (current === categoryId ? null : categoryId));
+  }
+
+  function clearCategoryFilter() {
+    setActiveCategory(null);
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero section */}
       <section className="bg-gradient-to-br from-primary via-primary/90 to-secondary text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16">
           <div className="max-w-2xl">
-            {/* ✅ Removido “+1.200 profissionais disponíveis em SP” (fake) */}
             <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm mb-4">
               <MapPin className="w-3.5 h-3.5" />
-              <span>Encontre profissionais perto de você</span>
+              <span>Encontre profissionais perto de voce</span>
             </div>
 
             <h1
               className="text-3xl md:text-5xl text-white mb-4"
               style={{ fontWeight: 700, lineHeight: 1.2 }}
             >
-              Encontre o profissional <span className="text-accent">certo</span> perto de você
+              Encontre o profissional <span className="text-accent">certo</span> perto de voce
             </h1>
 
             <p className="text-white/90 mb-8 text-lg">
-              Conectamos você com profissionais verificados e organizamos as opções para você escolher com segurança.
+              Conectamos voce com profissionais verificados e organizamos as
+              opcoes para voce escolher com seguranca.
             </p>
 
-            {/* Location button */}
             {!locationGranted ? (
               <button
                 onClick={handleLocationRequest}
@@ -113,30 +202,27 @@ import {
                 ) : (
                   <Navigation className="w-4 h-4" />
                 )}
-                {locationLoading ? "Detectando localização..." : "Usar minha localização atual"}
+                {locationLoading
+                  ? "Detectando localizacao..."
+                  : "Usar minha localizacao atual"}
               </button>
             ) : (
-              // ✅ Sem inventar cidade/estado: só confirma que foi autorizado
               <div className="flex items-center gap-2 text-green-200 mb-5">
                 <MapPin className="w-4 h-4" />
-                <span className="text-sm">Localização autorizada</span>
+                <span className="text-sm">Localizacao autorizada</span>
               </div>
             )}
 
-            {/* Mensagens (ex: erro de localização ou busca vazia) */}
-            {menuMessage && (
-              <p className="text-sm text-accent mb-3">{menuMessage}</p>
-            )}
+            {menuMessage && <p className="text-sm text-accent mb-3">{menuMessage}</p>}
 
-            {/* Search bar */}
             <form onSubmit={handleSearch} className="flex gap-3">
               <div className="flex-1 relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Qual serviço você precisa?"
+                  placeholder="Qual servico voce precisa?"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(event) => setSearchQuery(event.target.value)}
                   className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white text-gray-800 placeholder-gray-400 outline-none shadow-lg"
                 />
               </div>
@@ -151,56 +237,103 @@ import {
         </div>
       </section>
 
-      {/* Quick categories */}
       <section className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-            <span className="text-sm text-gray-500 whitespace-nowrap flex-shrink-0">
-              Acesso rápido:
-            </span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-primary/70">
+                Categorias
+              </p>
+              <h2 className="text-gray-900">Escolha o tipo de servico</h2>
+            </div>
 
-            {/* ✅ Se não tem categorias reais ainda, mostra texto neutro */}
-            {categories.length === 0 ? (
-              <span className="text-sm text-gray-400">
-                Categorias aparecerão aqui quando forem cadastradas.
-              </span>
-            ) : (
-              categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategory(cat.id)}
-                  className={`
-                    flex items-center gap-2 px-4 py-2 rounded-full text-sm whitespace-nowrap flex-shrink-0 transition-all border
-                    ${
-                      activeCategory === cat.id
-                        ? "bg-primary text-white border-primary"
-                        : "bg-gray-50 text-gray-700 border-gray-200 hover:border-primary/40 hover:bg-primary/10"
-                    }
-                  `}
-                >
-                  <span>{cat.icon ?? "•"}</span>
-                  <span>{cat.label}</span>
-                </button>
-              ))
+            {activeCategory && (
+              <button
+                onClick={clearCategoryFilter}
+                className="text-sm text-primary hover:text-primary/80"
+              >
+                Limpar filtro
+              </button>
             )}
           </div>
+
+          {loadingData ? (
+            <p className="text-sm text-gray-400">Carregando categorias...</p>
+          ) : categories.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              Categorias aparecerao aqui quando forem cadastradas.
+            </p>
+          ) : (
+            <div className="overflow-x-auto pb-2">
+              <div className="flex gap-3 min-w-max">
+                {categories.map((category) => {
+                  const count = professionalsByCategory.get(category.id) ?? 0;
+                  const isActive = activeCategory === category.id;
+
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => handleCategory(category.id)}
+                      className={`
+                        w-[190px] rounded-2xl border p-4 text-left transition-all
+                        ${
+                          isActive
+                            ? "border-primary bg-primary text-white shadow-md"
+                            : "border-gray-200 bg-gray-50 text-gray-800 hover:border-primary/40 hover:bg-white"
+                        }
+                      `}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span
+                          className={`
+                            w-10 h-10 rounded-xl flex items-center justify-center text-sm
+                            ${
+                              isActive
+                                ? "bg-white/20 text-white"
+                                : "bg-primary/10 text-primary"
+                            }
+                          `}
+                          style={{ fontWeight: 700 }}
+                        >
+                          {getCategoryBadge(category.label)}
+                        </span>
+
+                        <Sparkles className={`w-4 h-4 ${isActive ? "text-white" : "text-primary/70"}`} />
+                      </div>
+
+                      <p
+                        className={`${isActive ? "text-white" : "text-gray-900"}`}
+                        style={{ fontWeight: 600 }}
+                      >
+                        {category.label}
+                      </p>
+
+                      <p className={`text-xs mt-1 ${isActive ? "text-white/80" : "text-gray-500"}`}>
+                        {count} profissional{count === 1 ? "" : "is"}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Main content: Lista (sem inventar números) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-gray-900">Profissionais</h2>
 
-            {/* ✅ Removido contador fake; só mostra se existir dado real */}
-            {professionals.length > 0 ? (
+            {loadingData ? (
+              <p className="text-sm text-gray-500 mt-1">Carregando profissionais...</p>
+            ) : visibleProfessionals.length > 0 ? (
               <p className="text-sm text-gray-500 mt-1">
-                {professionals.filter((p) => p.online).length} disponíveis agora
+                {onlineCount} disponiveis agora
               </p>
             ) : (
               <p className="text-sm text-gray-500 mt-1">
-                Carregue profissionais do backend para exibir aqui.
+                Nenhum profissional encontrado para o filtro atual.
               </p>
             )}
           </div>
@@ -214,16 +347,42 @@ import {
           </button>
         </div>
 
-        {/* ✅ Sem MapView/ProfessionalCard se você ainda não tem dados reais
-             */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-6">
-          <p className="text-gray-600">
-            Aqui você pode mostrar o mapa e a lista assim que integrar o backend (profissionais por perto).
-          </p>
-        </div>
+        {loadingData ? (
+          <div className="bg-white border border-gray-100 rounded-2xl p-6">
+            <p className="text-gray-600">Buscando profissionais e categorias...</p>
+          </div>
+        ) : dataError ? (
+          <div className="bg-white border border-red-200 rounded-2xl p-6">
+            <p className="text-red-600 mb-3">{dataError}</p>
+            <button
+              onClick={() => {
+                void loadHomeData();
+              }}
+              className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        ) : visibleProfessionals.length === 0 ? (
+          <div className="bg-white border border-gray-100 rounded-2xl p-6">
+            <p className="text-gray-600">
+              Assim que houver profissionais cadastrados no banco, eles aparecem aqui automaticamente.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {visibleProfessionals.slice(0, 6).map((professional) => (
+              <ProfessionalCard
+                key={professional.id}
+                pro={professional}
+                highlighted={selectedProId === professional.id}
+                onSelect={() => setSelectedProId(professional.id)}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* Features (essas são “promessas do produto”, não números fake) */}
       <section className="bg-white border-t border-gray-100 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <h2 className="text-center text-gray-900 mb-10">
@@ -235,40 +394,44 @@ import {
               {
                 icon: <Navigation className="w-6 h-6 text-primary" />,
                 title: "Busca por proximidade",
-                desc: "Mostre profissionais mais próximos quando a localização estiver autorizada.",
-                bg: "bg-primary/10",
+                desc: "Mostre profissionais mais proximos quando a localizacao estiver autorizada.",
+                bg: "bg-primary/10"
               },
               {
                 icon: <Shield className="w-6 h-6 text-secondary" />,
                 title: "Perfis verificados",
-                desc: "Você pode validar documentos e avaliações conforme seu processo.",
-                bg: "bg-secondary/15",
+                desc: "Voce pode validar documentos e avaliacoes conforme seu processo.",
+                bg: "bg-secondary/15"
               },
               {
                 icon: <Clock className="w-6 h-6 text-accent" />,
-                title: "Resposta rápida",
-                desc: "O usuário encontra e chama um profissional com poucos cliques.",
-                bg: "bg-accent/15",
-              },
-            ].map((f, i) => (
-              <div key={i} className="flex flex-col items-center text-center p-6 rounded-2xl bg-gray-50">
-                <div className={`w-14 h-14 ${f.bg} rounded-2xl flex items-center justify-center mb-4`}>
-                  {f.icon}
+                title: "Resposta rapida",
+                desc: "O usuario encontra e chama um profissional com poucos cliques.",
+                bg: "bg-accent/15"
+              }
+            ].map((feature, index) => (
+              <div
+                key={index}
+                className="flex flex-col items-center text-center p-6 rounded-2xl bg-gray-50"
+              >
+                <div
+                  className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-4`}
+                >
+                  {feature.icon}
                 </div>
-                <h3 className="text-gray-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+                <h3 className="text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
       <section className="bg-white py-12">
         <div className="max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-gray-900 mb-3">Você é um profissional?</h2>
+          <h2 className="text-gray-900 mb-3">Voce e um profissional?</h2>
           <p className="text-gray-500 mb-6">
-            Cadastre-se e comece a receber solicitações de clientes.
+            Cadastre-se e comece a receber solicitacoes de clientes.
           </p>
           <button
             onClick={() => navigate("/cadastrar-profissional")}
@@ -281,4 +444,5 @@ import {
     </div>
   );
 }
+
 export default Home;

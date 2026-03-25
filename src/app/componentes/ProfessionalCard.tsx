@@ -1,4 +1,5 @@
-import { Star, MapPin, CheckCircle, Zap } from "lucide-react";
+import { useState } from "react";
+import { Star, MapPin, CheckCircle, Zap, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Professional {
@@ -25,6 +26,11 @@ interface ProfessionalCardProps {
 
 export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCardProps) {
   const navigate = useNavigate();
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const safePhoto = typeof pro.photo === "string" ? pro.photo.trim() : "";
+  const hasPhoto = Boolean(safePhoto) && !imageFailed;
+  const fallbackInitial = pro.name.trim().charAt(0).toUpperCase() || "P";
 
   return (
     <div
@@ -36,22 +42,28 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
     >
       <div className="p-4">
         <div className="flex items-start gap-3">
-
-          {/* FOTO (só renderiza se existir) */}
-          {pro.photo && (
-            <div className="relative flex-shrink-0">
+          <div className="relative flex-shrink-0">
+            {hasPhoto ? (
               <img
-                src={pro.photo}
+                src={safePhoto}
                 alt={pro.name}
-                className="w-14 h-14 rounded-xl object-cover"
+                onError={() => setImageFailed(true)}
+                className="w-14 h-14 rounded-xl object-cover bg-blue-50"
+                loading="lazy"
               />
-              {pro.online && (
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
-              )}
-            </div>
-          )}
+            ) : (
+              <div className="w-14 h-14 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center relative overflow-hidden">
+                <User className="w-4 h-4 absolute opacity-30" />
+                <span className="text-sm relative z-10" style={{ fontWeight: 700 }}>
+                  {fallbackInitial}
+                </span>
+              </div>
+            )}
+            {pro.online && (
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
+            )}
+          </div>
 
-          {/* INFO */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <h3 className="text-gray-900 truncate" style={{ fontWeight: 600 }}>
@@ -63,12 +75,9 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
             </div>
 
             {pro.categoryLabel && (
-              <p className="text-sm text-gray-500 mt-0.5">
-                {pro.categoryLabel}
-              </p>
+              <p className="text-sm text-gray-500 mt-0.5">{pro.categoryLabel}</p>
             )}
 
-            {/* Rating e distância só se existirem */}
             {(pro.rating || pro.distance) && (
               <div className="flex items-center gap-3 mt-1.5">
                 {pro.rating !== undefined && (
@@ -78,9 +87,7 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
                       {pro.rating.toFixed(1)}
                     </span>
                     {pro.reviews !== undefined && (
-                      <span className="text-xs text-gray-400">
-                        ({pro.reviews})
-                      </span>
+                      <span className="text-xs text-gray-400">({pro.reviews})</span>
                     )}
                   </div>
                 )}
@@ -95,22 +102,16 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
             )}
           </div>
 
-          {/* PREÇO */}
           {pro.price !== undefined && (
             <div className="text-right flex-shrink-0">
               <p className="text-blue-600" style={{ fontWeight: 700 }}>
                 R${pro.price}
               </p>
-              {pro.priceUnit && (
-                <p className="text-xs text-gray-400">
-                  /{pro.priceUnit}
-                </p>
-              )}
+              {pro.priceUnit && <p className="text-xs text-gray-400">/{pro.priceUnit}</p>}
             </div>
           )}
         </div>
 
-        {/* TAGS */}
         {pro.tags && pro.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3">
             {pro.tags.slice(0, 3).map((tag) => (
@@ -124,7 +125,6 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
           </div>
         )}
 
-        {/* FOOTER */}
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
           <div className="flex-1">
             {pro.completedJobs !== undefined && (
@@ -132,7 +132,7 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
                 <span style={{ fontWeight: 600 }} className="text-gray-700">
                   {pro.completedJobs}
                 </span>{" "}
-                serviços realizados
+                servicos realizados
               </p>
             )}
           </div>
@@ -140,13 +140,13 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
           {pro.online && (
             <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               <Zap className="w-3 h-3" />
-              Disponível agora
+              Disponivel agora
             </span>
           )}
 
           <button
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={(event) => {
+              event.stopPropagation();
               navigate(`/profissional/${pro.id}`);
             }}
             className="bg-blue-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
