@@ -1,57 +1,83 @@
-# React + Vite
+# Front-end (React + Vite)
 
-Este template fornece uma configuracao minima para usar React com Vite, com HMR e algumas regras de ESLint.
+## Dependencias em uso (`package.json`)
 
-Atualmente, existem dois plugins oficiais disponiveis:
+### Producao (`dependencies`)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react), que usa [Babel](https://babeljs.io/) (ou [oxc](https://oxc.rs), quando usado com [rolldown-vite](https://vite.dev/guide/rolldown)) para Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc), que usa [SWC](https://swc.rs/) para Fast Refresh
+- `@radix-ui/react-accordion`: `^1.2.12`
+- `@radix-ui/react-alert-dialog`: `^1.1.15`
+- `@radix-ui/react-aspect-ratio`: `^1.1.8`
+- `@radix-ui/react-avatar`: `^1.1.11`
+- `@radix-ui/react-checkbox`: `^1.3.3`
+- `@radix-ui/react-collapsible`: `^1.1.12`
+- `@radix-ui/react-context-menu`: `^2.2.16`
+- `@radix-ui/react-dialog`: `^1.1.15`
+- `@radix-ui/react-dropdown-menu`: `^2.1.16`
+- `@radix-ui/react-hover-card`: `^1.1.15`
+- `@radix-ui/react-label`: `^2.1.8`
+- `@radix-ui/react-menubar`: `^1.1.16`
+- `@radix-ui/react-navigation-menu`: `^1.2.14`
+- `@radix-ui/react-popover`: `^1.1.15`
+- `@radix-ui/react-progress`: `^1.1.8`
+- `@radix-ui/react-radio-group`: `^1.3.8`
+- `@radix-ui/react-scroll-area`: `^1.2.10`
+- `@radix-ui/react-select`: `^2.2.6`
+- `@radix-ui/react-separator`: `^1.1.8`
+- `@radix-ui/react-slider`: `^1.3.6`
+- `@radix-ui/react-slot`: `^1.2.4`
+- `@radix-ui/react-switch`: `^1.2.6`
+- `@radix-ui/react-tabs`: `^1.1.13`
+- `@radix-ui/react-toggle`: `^1.1.10`
+- `@radix-ui/react-toggle-group`: `^1.1.11`
+- `@radix-ui/react-tooltip`: `^1.2.8`
+- `class-variance-authority`: `^0.7.1`
+- `clsx`: `^2.1.1`
+- `cmdk`: `^1.1.1`
+- `embla-carousel-react`: `^8.6.0`
+- `input-otp`: `^1.4.2`
+- `lucide-react`: `^0.575.0`
+- `next-themes`: `^0.4.6`
+- `react`: `^19.2.0`
+- `react-day-picker`: `^9.14.0`
+- `react-dom`: `^19.2.0`
+- `react-hook-form`: `^7.71.2`
+- `react-resizable-panels`: `^4.7.0`
+- `react-router-dom`: `^7.13.1`
+- `recharts`: `^3.7.0`
+- `sonner`: `^2.0.7`
+- `tailwind-merge`: `^3.5.0`
+- `tw-animate-css`: `^1.4.0`
+- `vaul`: `^1.1.2`
 
-## Compilador do React
+### Desenvolvimento (`devDependencies`)
 
-No momento, o Compilador do React nao e compativel com SWC. Veja [esta issue](https://github.com/vitejs/vite-plugin-react/issues/428) para acompanhar o progresso.
+- `@eslint/js`: `^9.39.1`
+- `@tailwindcss/vite`: `^4.2.1`
+- `@types/react`: `^19.2.7`
+- `@types/react-dom`: `^19.2.3`
+- `@vitejs/plugin-react-swc`: `^4.2.2`
+- `eslint`: `^9.39.1`
+- `eslint-plugin-react-hooks`: `^7.0.1`
+- `eslint-plugin-react-refresh`: `^0.4.24`
+- `globals`: `^16.5.0`
+- `tailwindcss`: `^4.2.1`
+- `vite`: `^8.0.0-beta.13`
 
-## Expansao da configuracao do ESLint
+### Override
 
-Se voce estiver desenvolvendo uma aplicacao de producao, a recomendacao e usar TypeScript com regras de lint orientadas por tipos. Consulte o [template TS](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) para saber como integrar TypeScript e [`typescript-eslint`](https://typescript-eslint.io) no projeto.
+- `vite`: `^8.0.0-beta.13`
 
-## Comandos das extensoes instaladas
-
-### Back-end (`/backend`)
+## Comandos para instalar as dependencias
 
 ```bash
-npm install cors dotenv express
-npm install -D nodemon
+npm install @radix-ui/react-accordion@^1.2.12 @radix-ui/react-alert-dialog@^1.1.15 @radix-ui/react-aspect-ratio@^1.1.8 @radix-ui/react-avatar@^1.1.11 @radix-ui/react-checkbox@^1.3.3 @radix-ui/react-collapsible@^1.1.12 @radix-ui/react-context-menu@^2.2.16 @radix-ui/react-dialog@^1.1.15 @radix-ui/react-dropdown-menu@^2.1.16 @radix-ui/react-hover-card@^1.1.15 @radix-ui/react-label@^2.1.8 @radix-ui/react-menubar@^1.1.16 @radix-ui/react-navigation-menu@^1.2.14 @radix-ui/react-popover@^1.1.15 @radix-ui/react-progress@^1.1.8 @radix-ui/react-radio-group@^1.3.8 @radix-ui/react-scroll-area@^1.2.10 @radix-ui/react-select@^2.2.6 @radix-ui/react-separator@^1.1.8 @radix-ui/react-slider@^1.3.6 @radix-ui/react-slot@^1.2.4 @radix-ui/react-switch@^1.2.6 @radix-ui/react-tabs@^1.1.13 @radix-ui/react-toggle@^1.1.10 @radix-ui/react-toggle-group@^1.1.11 @radix-ui/react-tooltip@^1.2.8 class-variance-authority@^0.7.1 clsx@^2.1.1 cmdk@^1.1.1 embla-carousel-react@^8.6.0 input-otp@^1.4.2 lucide-react@^0.575.0 next-themes@^0.4.6 react@^19.2.0 react-day-picker@^9.14.0 react-dom@^19.2.0 react-hook-form@^7.71.2 react-resizable-panels@^4.7.0 react-router-dom@^7.13.1 recharts@^3.7.0 sonner@^2.0.7 tailwind-merge@^3.5.0 tw-animate-css@^1.4.0 vaul@^1.1.2
+npm install -D @eslint/js@^9.39.1 @tailwindcss/vite@^4.2.1 @types/react@^19.2.7 @types/react-dom@^19.2.3 @vitejs/plugin-react-swc@^4.2.2 eslint@^9.39.1 eslint-plugin-react-hooks@^7.0.1 eslint-plugin-react-refresh@^0.4.24 globals@^16.5.0 tailwindcss@^4.2.1 vite@^8.0.0-beta.13
 ```
 
-### Front-end (`/frontend`)
+## Scripts uteis
 
 ```bash
-npm install @radix-ui/react-accordion @radix-ui/react-alert-dialog @radix-ui/react-aspect-ratio @radix-ui/react-avatar @radix-ui/react-checkbox @radix-ui/react-collapsible @radix-ui/react-context-menu @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-hover-card @radix-ui/react-label @radix-ui/react-menubar @radix-ui/react-navigation-menu @radix-ui/react-popover @radix-ui/react-progress @radix-ui/react-radio-group @radix-ui/react-scroll-area @radix-ui/react-select @radix-ui/react-separator @radix-ui/react-slider @radix-ui/react-slot @radix-ui/react-switch @radix-ui/react-tabs @radix-ui/react-toggle @radix-ui/react-toggle-group @radix-ui/react-tooltip class-variance-authority clsx cmdk embla-carousel-react input-otp lucide-react next-themes react react-day-picker react-dom react-hook-form react-resizable-panels react-router-dom recharts sonner tailwind-merge tw-animate-css vaul
-npm install -D @eslint/js @tailwindcss/vite @types/react @types/react-dom @vitejs/plugin-react-swc eslint eslint-plugin-react-hooks eslint-plugin-react-refresh globals tailwindcss vite
-```
-
-## Comandos para executar o projeto
-
-### Back-end (`/backend`)
-
-```bash
-cd backend
-npm install
 npm run dev
-```
-
-### Front-end (`/frontend`)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Outros comandos uteis do front-end
-
-```bash
 npm run build
 npm run lint
 npm run preview
