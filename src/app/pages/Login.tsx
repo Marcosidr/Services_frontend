@@ -258,30 +258,6 @@ function Login() {
         return;
       }
 
-      const foundUser = data.user;
-
-      setForm((prev) => ({
-        ...prev,
-        name: typeof foundUser.name === "string" && foundUser.name ? foundUser.name : prev.name,
-        email: typeof foundUser.email === "string" && foundUser.email ? foundUser.email : prev.email,
-        phone:
-          typeof foundUser.phone === "string" && foundUser.phone
-            ? formatPhone(foundUser.phone)
-            : prev.phone,
-        cep: typeof foundUser.cep === "string" && foundUser.cep ? formatCep(foundUser.cep) : prev.cep,
-        endereco:
-          typeof foundUser.endereco === "string" && foundUser.endereco ? foundUser.endereco : prev.endereco,
-        numero: typeof foundUser.numero === "string" && foundUser.numero ? foundUser.numero : prev.numero,
-        complemento:
-          typeof foundUser.complemento === "string" && foundUser.complemento
-            ? foundUser.complemento
-            : prev.complemento,
-        bairro: typeof foundUser.bairro === "string" && foundUser.bairro ? foundUser.bairro : prev.bairro,
-        cidade: typeof foundUser.cidade === "string" && foundUser.cidade ? foundUser.cidade : prev.cidade,
-        uf: typeof foundUser.uf === "string" && foundUser.uf ? foundUser.uf : prev.uf,
-        estado: typeof foundUser.estado === "string" && foundUser.estado ? foundUser.estado : prev.estado
-      }));
-
       setCpfAlreadyRegistered(true);
       setCpfLookupMessage("CPF ja cadastrado.");
     } catch {
