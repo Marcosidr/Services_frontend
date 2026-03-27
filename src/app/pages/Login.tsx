@@ -1,26 +1,42 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Eye,
-  EyeOff,
-  MapPin,
-  Phone,
-  AlertCircle,
-  CheckCircle
-} from "lucide-react";
+import { Eye, EyeOff, MapPin, Phone, AlertCircle, CheckCircle } from "lucide-react";
+import { formatCep, fetchViaCep, normalizeCep, cepValido } from "../utils/cep";
 import { formatCpf, isValidCpf, normalizeCpf } from "../utils/cpf";
 import { getEmailValidationError, normalizeEmail } from "../utils/email";
 import { getPasswordValidationError } from "../utils/password";
 import { formatPhone, getPhoneValidationError, normalizePhone } from "../utils/phone";
 
 type AuthTab = "login" | "register";
-type FormField = "name" | "email" | "cpf" | "phone" | "password" | "confirmPassword";
+type FormField =
+  | "cpf"
+  | "name"
+  | "email"
+  | "phone"
+  | "cep"
+  | "endereco"
+  | "numero"
+  | "complemento"
+  | "bairro"
+  | "cidade"
+  | "uf"
+  | "estado"
+  | "password"
+  | "confirmPassword";
 
 type AuthForm = {
+  cpf: string;
   name: string;
   email: string;
-  cpf: string;
   phone: string;
+  cep: string;
+  endereco: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+  estado: string;
   password: string;
   confirmPassword: string;
 };
@@ -34,18 +50,34 @@ interface AuthResponse {
     id: string;
     name: string;
     email: string;
+    phone?: string | null;
+    cep?: string | null;
+    endereco?: string | null;
+    numero?: string | null;
+    complemento?: string | null;
+    bairro?: string | null;
+    cidade?: string | null;
+    uf?: string | null;
+    estado?: string | null;
     role?: string;
   };
 }
 
 const registerFieldOrder: FormField[] = [
+  "cpf",
   "name",
   "email",
   "phone",
-  "cpf",
+  "cep",
+  "endereco",
+  "numero",
+  "bairro",
+  "cidade",
+  "uf",
   "password",
   "confirmPassword"
 ];
+
 const loginFieldOrder: FormField[] = ["email", "password"];
 
 function validateAuthForm(form: AuthForm, tab: AuthTab) {
@@ -66,6 +98,12 @@ function validateAuthForm(form: AuthForm, tab: AuthTab) {
   }
 
   if (tab === "register") {
+    if (!form.cpf.trim()) {
+      errors.cpf = "Informe seu CPF.";
+    } else if (!isValidCpf(form.cpf)) {
+      errors.cpf = "Informe um CPF valido.";
+    }
+
     if (!form.name.trim()) {
       errors.name = "Informe seu nome completo.";
     }
@@ -79,10 +117,21 @@ function validateAuthForm(form: AuthForm, tab: AuthTab) {
       }
     }
 
-    if (!form.cpf.trim()) {
-      errors.cpf = "Informe seu CPF.";
-    } else if (!isValidCpf(form.cpf)) {
-      errors.cpf = "Informe um CPF valido.";
+    if (!form.cep.trim()) {
+      errors.cep = "Informe seu CEP.";
+    } else if (!cepValido(form.cep)) {
+      errors.cep = "Informe um CEP valido.";
+    }
+
+    if (!form.endereco.trim()) errors.endereco = "Informe o endereco.";
+    if (!form.numero.trim()) errors.numero = "Informe o numero.";
+    if (!form.bairro.trim()) errors.bairro = "Informe o bairro.";
+    if (!form.cidade.trim()) errors.cidade = "Informe a cidade.";
+
+    if (!form.uf.trim()) {
+      errors.uf = "Informe a UF.";
+    } else if (!/^[a-zA-Z]{2}$/.test(form.uf.trim())) {
+      errors.uf = "A UF deve conter 2 letras.";
     }
 
     if (!form.confirmPassword.trim()) {
@@ -112,12 +161,25 @@ function Login() {
   const [tab, setTab] = useState<AuthTab>("login");
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
+  const [cpfLookupMessage, setCpfLookupMessage] = useState("");
+  const [cpfAlreadyRegistered, setCpfAlreadyRegistered] = useState(false);
+  const [lastCpfLookup, setLastCpfLookup] = useState("");
+  const [cepLookupLoading, setCepLookupLoading] = useState(false);
 
   const [form, setForm] = useState<AuthForm>({
+    cpf: "",
     name: "",
     email: "",
-    cpf: "",
     phone: "",
+    cep: "",
+    endereco: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    uf: "",
+    estado: "",
     password: "",
     confirmPassword: ""
   });
@@ -141,6 +203,14 @@ function Login() {
       [field]: true
     }));
 
+    if (field === "cpf") {
+      setCpfLookupMessage("");
+      setCpfAlreadyRegistered(false);
+      if (!isValidCpf(value)) {
+        setLastCpfLookup("");
+      }
+    }
+
     if (error) setError("");
   };
 
@@ -162,6 +232,108 @@ function Login() {
   const resetValidationState = () => {
     setSubmitAttempted(false);
     setTouched({});
+    setCpfAlreadyRegistered(false);
+  };
+
+  const lookupCpf = async (normalizedCpf: string) => {
+    try {
+      setCpfLookupLoading(true);
+      setCpfLookupMessage("");
+
+      const response = await fetch(`/api/auth/cpf/${normalizedCpf}`);
+      if (!response.ok) {
+        setCpfLookupMessage("");
+        setCpfAlreadyRegistered(false);
+        return;
+      }
+
+      const data = (await response.json()) as {
+        exists?: boolean;
+        user?: AuthResponse["user"];
+      };
+
+      if (!data?.exists || !data.user) {
+        setCpfLookupMessage("");
+        setCpfAlreadyRegistered(false);
+        return;
+      }
+
+      const foundUser = data.user;
+
+      setForm((prev) => ({
+        ...prev,
+        name: typeof foundUser.name === "string" && foundUser.name ? foundUser.name : prev.name,
+        email: typeof foundUser.email === "string" && foundUser.email ? foundUser.email : prev.email,
+        phone:
+          typeof foundUser.phone === "string" && foundUser.phone
+            ? formatPhone(foundUser.phone)
+            : prev.phone,
+        cep: typeof foundUser.cep === "string" && foundUser.cep ? formatCep(foundUser.cep) : prev.cep,
+        endereco:
+          typeof foundUser.endereco === "string" && foundUser.endereco ? foundUser.endereco : prev.endereco,
+        numero: typeof foundUser.numero === "string" && foundUser.numero ? foundUser.numero : prev.numero,
+        complemento:
+          typeof foundUser.complemento === "string" && foundUser.complemento
+            ? foundUser.complemento
+            : prev.complemento,
+        bairro: typeof foundUser.bairro === "string" && foundUser.bairro ? foundUser.bairro : prev.bairro,
+        cidade: typeof foundUser.cidade === "string" && foundUser.cidade ? foundUser.cidade : prev.cidade,
+        uf: typeof foundUser.uf === "string" && foundUser.uf ? foundUser.uf : prev.uf,
+        estado: typeof foundUser.estado === "string" && foundUser.estado ? foundUser.estado : prev.estado
+      }));
+
+      setCpfAlreadyRegistered(true);
+      setCpfLookupMessage("CPF ja cadastrado.");
+    } catch {
+      setCpfLookupMessage("");
+      setCpfAlreadyRegistered(false);
+    } finally {
+      setCpfLookupLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab !== "register") return;
+
+    const normalizedCpf = normalizeCpf(form.cpf);
+    if (!isValidCpf(normalizedCpf) || normalizedCpf === lastCpfLookup) return;
+
+    setLastCpfLookup(normalizedCpf);
+    void lookupCpf(normalizedCpf);
+  }, [form.cpf, lastCpfLookup, tab]);
+
+  const buscarCep = async () => {
+    if (tab !== "register") return;
+
+    const normalizedCep = normalizeCep(form.cep);
+    if (!cepValido(normalizedCep)) {
+      return;
+    }
+
+    try {
+      setCepLookupLoading(true);
+      const enderecoViaCep = await fetchViaCep(normalizedCep);
+
+      if (!enderecoViaCep) {
+        setError("CEP nao encontrado.");
+        return;
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        cep: formatCep(normalizedCep),
+        endereco: enderecoViaCep.logradouro || prev.endereco,
+        bairro: enderecoViaCep.bairro || prev.bairro,
+        cidade: enderecoViaCep.localidade || prev.cidade,
+        uf: enderecoViaCep.uf || prev.uf,
+        estado: enderecoViaCep.estado || prev.estado,
+        complemento: prev.complemento || enderecoViaCep.complemento || ""
+      }));
+    } catch {
+      setError("Falha ao buscar o CEP.");
+    } finally {
+      setCepLookupLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -177,6 +349,11 @@ function Login() {
       return;
     }
 
+    if (tab === "register" && cpfAlreadyRegistered) {
+      setError("CPF ja cadastrado");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -189,10 +366,18 @@ function Login() {
               password: form.password
             }
           : {
-              name: form.name,
-              email: normalizeEmail(form.email),
               cpf: normalizeCpf(form.cpf),
+              name: form.name.trim(),
+              email: normalizeEmail(form.email),
               phone: normalizePhone(form.phone),
+              cep: normalizeCep(form.cep),
+              endereco: form.endereco.trim(),
+              numero: form.numero.trim(),
+              complemento: form.complemento.trim(),
+              bairro: form.bairro.trim(),
+              cidade: form.cidade.trim(),
+              uf: form.uf.trim().toUpperCase(),
+              estado: form.estado.trim(),
               password: form.password
             };
 
@@ -300,6 +485,37 @@ function Login() {
           <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
             {tab === "register" && (
               <div>
+                <label className="text-xs text-gray-500 mb-1.5 block">CPF</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="000.000.000-00"
+                  value={form.cpf}
+                  onChange={(e) => updateField("cpf", formatCpf(e.target.value))}
+                  onBlur={() => touchField("cpf")}
+                  maxLength={14}
+                  className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none transition-colors ${
+                    shouldShowFieldError("cpf")
+                      ? "border-red-300 focus:border-red-500"
+                      : "border-gray-200 focus:border-primary"
+                  }`}
+                />
+                {shouldShowFieldError("cpf") && (
+                  <p className="mt-1 text-xs text-red-600">{validationErrors.cpf}</p>
+                )}
+                {cpfLookupLoading && (
+                  <p className="mt-1 text-xs text-gray-500">Buscando cadastro por CPF...</p>
+                )}
+                {!cpfLookupLoading && cpfLookupMessage && (
+                  <p className={`mt-1 text-xs ${cpfAlreadyRegistered ? "text-red-600" : "text-green-600"}`}>
+                    {cpfLookupMessage}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {tab === "register" && (
+              <div>
                 <label className="text-xs text-gray-500 mb-1.5 block">Nome completo</label>
                 <input
                   type="text"
@@ -366,25 +582,155 @@ function Login() {
             )}
 
             {tab === "register" && (
-              <div>
-                <label className="text-xs text-gray-500 mb-1.5 block">CPF</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="000.000.000-00"
-                  value={form.cpf}
-                  onChange={(e) => updateField("cpf", formatCpf(e.target.value))}
-                  onBlur={() => touchField("cpf")}
-                  maxLength={14}
-                  className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none transition-colors ${
-                    shouldShowFieldError("cpf")
-                      ? "border-red-300 focus:border-red-500"
-                      : "border-gray-200 focus:border-primary"
-                  }`}
-                />
-                {shouldShowFieldError("cpf") && (
-                  <p className="mt-1 text-xs text-red-600">{validationErrors.cpf}</p>
-                )}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-500 mb-1.5 block">CEP</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="00000-000"
+                    value={form.cep}
+                    onChange={(e) => updateField("cep", formatCep(e.target.value))}
+                    onBlur={() => {
+                      touchField("cep");
+                      void buscarCep();
+                    }}
+                    maxLength={9}
+                    className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none transition-colors ${
+                      shouldShowFieldError("cep")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-primary"
+                    }`}
+                  />
+                  {shouldShowFieldError("cep") && (
+                    <p className="mt-1 text-xs text-red-600">{validationErrors.cep}</p>
+                  )}
+                  {cepLookupLoading && (
+                    <p className="mt-1 text-xs text-gray-500">Buscando endereco pelo CEP...</p>
+                  )}
+                </div>
+
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-500 mb-1.5 block">Endereco</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Rua, avenida, praca..."
+                    value={form.endereco}
+                    onChange={(e) => updateField("endereco", e.target.value)}
+                    onBlur={() => touchField("endereco")}
+                    className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none transition-colors ${
+                      shouldShowFieldError("endereco")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-primary"
+                    }`}
+                  />
+                  {shouldShowFieldError("endereco") && (
+                    <p className="mt-1 text-xs text-red-600">{validationErrors.endereco}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block">Numero</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="123"
+                    value={form.numero}
+                    onChange={(e) => updateField("numero", e.target.value)}
+                    onBlur={() => touchField("numero")}
+                    className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none transition-colors ${
+                      shouldShowFieldError("numero")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-primary"
+                    }`}
+                  />
+                  {shouldShowFieldError("numero") && (
+                    <p className="mt-1 text-xs text-red-600">{validationErrors.numero}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block">Complemento</label>
+                  <input
+                    type="text"
+                    placeholder="Apto, bloco, casa..."
+                    value={form.complemento}
+                    onChange={(e) => updateField("complemento", e.target.value)}
+                    onBlur={() => touchField("complemento")}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none transition-colors focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block">Bairro</label>
+                  <input
+                    type="text"
+                    required
+                    value={form.bairro}
+                    onChange={(e) => updateField("bairro", e.target.value)}
+                    onBlur={() => touchField("bairro")}
+                    className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none transition-colors ${
+                      shouldShowFieldError("bairro")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-primary"
+                    }`}
+                  />
+                  {shouldShowFieldError("bairro") && (
+                    <p className="mt-1 text-xs text-red-600">{validationErrors.bairro}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block">Cidade</label>
+                  <input
+                    type="text"
+                    required
+                    value={form.cidade}
+                    onChange={(e) => updateField("cidade", e.target.value)}
+                    onBlur={() => touchField("cidade")}
+                    className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none transition-colors ${
+                      shouldShowFieldError("cidade")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-primary"
+                    }`}
+                  />
+                  {shouldShowFieldError("cidade") && (
+                    <p className="mt-1 text-xs text-red-600">{validationErrors.cidade}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block">UF</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={2}
+                    placeholder="SP"
+                    value={form.uf}
+                    onChange={(e) => updateField("uf", e.target.value.toUpperCase())}
+                    onBlur={() => touchField("uf")}
+                    className={`w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none transition-colors ${
+                      shouldShowFieldError("uf")
+                        ? "border-red-300 focus:border-red-500"
+                        : "border-gray-200 focus:border-primary"
+                    }`}
+                  />
+                  {shouldShowFieldError("uf") && (
+                    <p className="mt-1 text-xs text-red-600">{validationErrors.uf}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block">Estado</label>
+                  <input
+                    type="text"
+                    value={form.estado}
+                    onChange={(e) => updateField("estado", e.target.value)}
+                    onBlur={() => touchField("estado")}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none transition-colors focus:border-primary"
+                  />
+                </div>
               </div>
             )}
 

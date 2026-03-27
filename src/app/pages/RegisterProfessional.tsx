@@ -1,142 +1,123 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  Upload,
-  CheckCircle,
-  MapPin,
-  ChevronRight,
-  ChevronLeft,
-  User,
-  Briefcase,
-  DollarSign,
-  FileText,
-  Camera,
-} from "lucide-react";
+import { CheckCircle, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { cepValido, fetchViaCep, formatCep, normalizeCep } from "../utils/cep";
 import { formatCpf, isValidCpf, normalizeCpf } from "../utils/cpf";
 import { getEmailValidationError, normalizeEmail } from "../utils/email";
+import { getPasswordValidationError } from "../utils/password";
 import { formatPhone, getPhoneValidationError, normalizePhone } from "../utils/phone";
 
 interface Category {
   id: number | string;
-  slug?: string;
   label: string;
-  icon?: string;
 }
 
 interface RegisterForm {
+  cpf: string;
   name: string;
   email: string;
   phone: string;
-  cpf: string;
-  photo: File | null;
+  password: string;
+  confirmPassword: string;
+  cep: string;
+  endereco: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  city: string;
+  uf: string;
+  estado: string;
   categoryIds: string[];
   description: string;
   experience: string;
   price: string;
   priceUnit: string;
   area: string;
-  cep: string;
-  city: string;
-  rg: File | null;
-  cpfDoc: File | null;
-  selfie: File | null;
   online: boolean;
 }
 
-type StepOneField = "name" | "email" | "phone" | "cpf";
+type StepOneField =
+  | "cpf"
+  | "name"
+  | "email"
+  | "phone"
+  | "password"
+  | "confirmPassword"
+  | "cep"
+  | "endereco"
+  | "numero"
+  | "bairro"
+  | "city"
+  | "uf";
+
 type StepOneErrors = Partial<Record<StepOneField, string>>;
 
-const steps = [
-  { id: 1, label: "Dados pessoais", icon: User },
-  { id: 2, label: "Profissão", icon: Briefcase },
-  { id: 3, label: "Preços e área", icon: DollarSign },
-  { id: 4, label: "Documentos", icon: FileText },
+const stepOneFields: StepOneField[] = [
+  "cpf",
+  "name",
+  "email",
+  "phone",
+  "password",
+  "confirmPassword",
+  "cep",
+  "endereco",
+  "numero",
+  "bairro",
+  "city",
+  "uf"
 ];
 
-const weekDays = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-const rawApiBaseUrl = (import.meta as { env?: Record<string, string | undefined> }).env
-  ?.VITE_API_BASE_URL;
+const steps = [
+  { id: 1, label: "Dados pessoais" },
+  { id: 2, label: "Profissao" },
+  { id: 3, label: "Precos e area" }
+];
+
+const rawApiBaseUrl = (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_API_BASE_URL;
 const apiBaseUrl = typeof rawApiBaseUrl === "string" ? rawApiBaseUrl.replace(/\/$/, "") : "";
 const apiPath = (path: string) => `${apiBaseUrl}${path}`;
-
-const categoryEmojiBySlug: Record<string, string> = {
-  PINTOR: "🎨",
-  PEDREIRO: "🧱",
-  ELETRICISTA: "⚡",
-  ENCANADOR: "🔧",
-  GESSEIRO: "🛠️",
-  MARCENEIRO: "🪚",
-  SERRALHEIRO: "🔩",
-  VIDRACEIRO: "🪟",
-  CHAVEIRO: "🗝️",
-  JARDINEIRO: "🌿",
-  MONTADOR_MOVEIS: "🪑",
-  TECNICO_AR_CONDICIONADO: "❄️",
-  TECNICO_INFORMATICA: "💻",
-  DIARISTA: "🧼",
-  REPAROS_GERAIS: "🔨",
-};
-
-function getCategoryEmoji(category: Category) {
-  const bySlug =
-    typeof category.slug === "string" ? categoryEmojiBySlug[category.slug.toUpperCase()] : undefined;
-  if (bySlug) return bySlug;
-
-  const iconKey = (category.icon ?? "").trim().toLowerCase();
-  const byIcon: Record<string, string> = {
-    paint: "🎨",
-    brick: "🧱",
-    bolt: "⚡",
-    pipe: "🔧",
-    tool: "🛠️",
-    saw: "🪚",
-    wrench: "🔩",
-    glass: "🪟",
-    key: "🗝️",
-    leaf: "🌿",
-    furniture: "🪑",
-    fan: "❄️",
-    computer: "💻",
-    clean: "🧼",
-    hammer: "🔨",
-  };
-
-  return byIcon[iconKey] ?? "🧰";
-}
 
 function getStepOneErrors(form: RegisterForm) {
   const errors: StepOneErrors = {};
 
-  if (!form.name.trim()) {
-    errors.name = "Informe o nome completo.";
-  }
+  if (!form.cpf.trim()) errors.cpf = "Informe o CPF.";
+  else if (!isValidCpf(form.cpf)) errors.cpf = "Informe um CPF valido.";
+
+  if (!form.name.trim()) errors.name = "Informe o nome completo.";
 
   const emailValidationError = getEmailValidationError(form.email);
-  if (emailValidationError) {
-    errors.email = emailValidationError;
-  }
+  if (emailValidationError) errors.email = emailValidationError;
 
-  if (!form.phone.trim()) {
-    errors.phone = "Informe o telefone.";
-  } else {
+  if (!form.phone.trim()) errors.phone = "Informe o telefone.";
+  else {
     const phoneValidationError = getPhoneValidationError(form.phone);
-    if (phoneValidationError) {
-      errors.phone = phoneValidationError;
-    }
+    if (phoneValidationError) errors.phone = phoneValidationError;
   }
 
-  if (!form.cpf.trim()) {
-    errors.cpf = "Informe o CPF.";
-  } else if (!isValidCpf(form.cpf)) {
-    errors.cpf = "Informe um CPF valido.";
+  if (!form.password.trim()) errors.password = "Informe a senha.";
+  else {
+    const passwordValidationError = getPasswordValidationError(form.password);
+    if (passwordValidationError) errors.password = passwordValidationError;
   }
+
+  if (!form.confirmPassword.trim()) errors.confirmPassword = "Confirme a senha.";
+  else if (form.confirmPassword !== form.password) errors.confirmPassword = "As senhas nao coincidem.";
+
+  if (!form.cep.trim()) errors.cep = "Informe o CEP.";
+  else if (!cepValido(form.cep)) errors.cep = "Informe um CEP valido.";
+
+  if (!form.endereco.trim()) errors.endereco = "Informe o endereco.";
+  if (!form.numero.trim()) errors.numero = "Informe o numero.";
+  if (!form.bairro.trim()) errors.bairro = "Informe o bairro.";
+  if (!form.city.trim()) errors.city = "Informe a cidade.";
+  if (!form.uf.trim()) errors.uf = "Informe a UF.";
+  else if (!/^[a-zA-Z]{2}$/.test(form.uf.trim())) errors.uf = "A UF deve conter 2 letras.";
 
   return errors;
 }
 
 export function RegisterProfessional() {
   const navigate = useNavigate();
-
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -145,25 +126,33 @@ export function RegisterProfessional() {
   const [categoriesError, setCategoriesError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [stepOneTouched, setStepOneTouched] = useState<Partial<Record<StepOneField, boolean>>>({});
+  const [lastCpfLookup, setLastCpfLookup] = useState("");
+  const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
+  const [cpfLookupMessage, setCpfLookupMessage] = useState("");
+  const [cepLookupLoading, setCepLookupLoading] = useState(false);
 
   const [form, setForm] = useState<RegisterForm>({
+    cpf: "",
     name: "",
     email: "",
     phone: "",
-    cpf: "",
-    photo: null,
+    password: "",
+    confirmPassword: "",
+    cep: "",
+    endereco: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    city: "",
+    uf: "",
+    estado: "",
     categoryIds: [],
     description: "",
     experience: "",
     price: "",
     priceUnit: "hora",
     area: "10",
-    cep: "",
-    city: "",
-    rg: null,
-    cpfDoc: null,
-    selfie: null,
-    online: false,
+    online: false
   });
 
   useEffect(() => {
@@ -171,19 +160,13 @@ export function RegisterProfessional() {
       try {
         setLoadingCategories(true);
         setCategoriesError("");
-
         const response = await fetch(apiPath("/api/categories"));
-
-        if (!response.ok) {
-          throw new Error("Não foi possível carregar as categorias.");
-        }
-
+        if (!response.ok) throw new Error();
         const data: Category[] = await response.json();
         setCategories(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error(error);
-        setCategoriesError("Erro ao carregar categorias.");
+      } catch {
         setCategories([]);
+        setCategoriesError("Erro ao carregar categorias.");
       } finally {
         setLoadingCategories(false);
       }
@@ -192,72 +175,140 @@ export function RegisterProfessional() {
     loadCategories();
   }, []);
 
+  useEffect(() => {
+    const normalizedCpf = normalizeCpf(form.cpf);
+    if (!isValidCpf(normalizedCpf) || normalizedCpf === lastCpfLookup) return;
+
+    async function lookupByCpf() {
+      try {
+        setCpfLookupLoading(true);
+        setLastCpfLookup(normalizedCpf);
+        setCpfLookupMessage("");
+
+        const response = await fetch(apiPath(`/api/auth/cpf/${normalizedCpf}`));
+        if (!response.ok) return;
+
+        const data = (await response.json()) as {
+          exists?: boolean;
+          user?: {
+            name?: string;
+            email?: string;
+            phone?: string | null;
+            cep?: string | null;
+            endereco?: string | null;
+            numero?: string | null;
+            complemento?: string | null;
+            bairro?: string | null;
+            cidade?: string | null;
+            uf?: string | null;
+            estado?: string | null;
+          };
+        };
+
+        if (!data?.exists || !data.user) return;
+
+        setForm((prev) => ({
+          ...prev,
+          name: data.user?.name || prev.name,
+          email: data.user?.email || prev.email,
+          phone: data.user?.phone ? formatPhone(data.user.phone) : prev.phone,
+          cep: data.user?.cep ? formatCep(data.user.cep) : prev.cep,
+          endereco: data.user?.endereco || prev.endereco,
+          numero: data.user?.numero || prev.numero,
+          complemento: data.user?.complemento || prev.complemento,
+          bairro: data.user?.bairro || prev.bairro,
+          city: data.user?.cidade || prev.city,
+          uf: data.user?.uf || prev.uf,
+          estado: data.user?.estado || prev.estado
+        }));
+
+        setCpfLookupMessage("CPF encontrado. Campos preenchidos automaticamente.");
+      } catch {
+        setCpfLookupMessage("");
+      } finally {
+        setCpfLookupLoading(false);
+      }
+    }
+
+    void lookupByCpf();
+  }, [form.cpf, lastCpfLookup]);
+
   const update = <K extends keyof RegisterForm>(field: K, value: RegisterForm[K]) => {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+    setForm((prev) => ({ ...prev, [field]: value }));
 
-    if (field === "name" || field === "email" || field === "phone" || field === "cpf") {
-      setStepOneTouched((previous) => ({
-        ...previous,
-        [field]: true
-      }));
+    if ((stepOneFields as Array<keyof RegisterForm>).includes(field)) {
+      setStepOneTouched((prev) => ({ ...prev, [field as StepOneField]: true }));
     }
 
-    if (submitError) {
-      setSubmitError("");
+    if (field === "cpf") {
+      setCpfLookupMessage("");
+      if (!isValidCpf(String(value))) setLastCpfLookup("");
     }
-  };
 
-  const toggleCategory = (categoryId: number | string) => {
-    const normalizedId = String(categoryId);
-
-    setForm((previous) => {
-      const alreadySelected = previous.categoryIds.includes(normalizedId);
-
-      return {
-        ...previous,
-        categoryIds: alreadySelected
-          ? previous.categoryIds.filter((id) => id !== normalizedId)
-          : [...previous.categoryIds, normalizedId],
-      };
-    });
+    if (submitError) setSubmitError("");
   };
 
   const touchStepOneField = (field: StepOneField) => {
-    setStepOneTouched((previous) => ({
-      ...previous,
-      [field]: true
-    }));
+    setStepOneTouched((prev) => ({ ...prev, [field]: true }));
   };
 
   const stepOneErrors = getStepOneErrors(form);
   const shouldShowStepOneError = (field: StepOneField) =>
     step === 1 && Boolean(stepOneTouched[field] && stepOneErrors[field]);
 
+  const toggleCategory = (categoryId: number | string) => {
+    const normalizedId = String(categoryId);
+    setForm((prev) => ({
+      ...prev,
+      categoryIds: prev.categoryIds.includes(normalizedId)
+        ? prev.categoryIds.filter((id) => id !== normalizedId)
+        : [...prev.categoryIds, normalizedId]
+    }));
+  };
+
+  const buscarCep = async () => {
+    const normalized = normalizeCep(form.cep);
+    if (!cepValido(normalized)) return;
+
+    try {
+      setCepLookupLoading(true);
+      const enderecoViaCep = await fetchViaCep(normalized);
+      if (!enderecoViaCep) {
+        setSubmitError("CEP nao encontrado.");
+        return;
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        cep: formatCep(normalized),
+        endereco: enderecoViaCep.logradouro || prev.endereco,
+        bairro: enderecoViaCep.bairro || prev.bairro,
+        city: enderecoViaCep.localidade || prev.city,
+        uf: enderecoViaCep.uf || prev.uf,
+        estado: enderecoViaCep.estado || prev.estado,
+        complemento: prev.complemento || enderecoViaCep.complemento || ""
+      }));
+    } catch {
+      setSubmitError("Falha ao buscar CEP.");
+    } finally {
+      setCepLookupLoading(false);
+    }
+  };
+
   const validateStep = () => {
     if (step === 1) {
-      if (stepOneErrors.name) return stepOneErrors.name;
-      if (stepOneErrors.email) return stepOneErrors.email;
-      if (stepOneErrors.phone) return stepOneErrors.phone;
-      if (stepOneErrors.cpf) return stepOneErrors.cpf;
-      if (!form.photo) return "Envie uma foto profissional.";
+      for (const field of stepOneFields) {
+        if (stepOneErrors[field]) return stepOneErrors[field] as string;
+      }
     }
 
     if (step === 2) {
       if (form.categoryIds.length === 0) return "Selecione ao menos uma categoria.";
-      if (!form.description.trim()) return "Descreva seus serviços.";
+      if (!form.description.trim()) return "Descreva seus servicos.";
     }
 
-    if (step === 3) {
-      if (!form.price.trim()) return "Informe o valor médio.";
-    }
-
-    if (step === 4) {
-      if (!form.rg) return "Envie o RG ou CNH.";
-      if (!form.cpfDoc) return "Envie o documento de CPF.";
-      if (!form.selfie) return "Envie a selfie com documento.";
+    if (step === 3 && !form.price.trim()) {
+      return "Informe o valor medio.";
     }
 
     return "";
@@ -265,23 +316,19 @@ export function RegisterProfessional() {
 
   const nextStep = () => {
     if (step === 1) {
-      setStepOneTouched({
-        name: true,
-        email: true,
-        phone: true,
-        cpf: true
-      });
+      const touched: Partial<Record<StepOneField, boolean>> = {};
+      for (const field of stepOneFields) touched[field] = true;
+      setStepOneTouched(touched);
     }
 
     const error = validateStep();
-
     if (error) {
       setSubmitError(error);
       return;
     }
 
     setSubmitError("");
-    setStep((current) => Math.min(current + 1, 4));
+    setStep((current) => Math.min(current + 1, 3));
   };
 
   const prevStep = () => {
@@ -291,7 +338,6 @@ export function RegisterProfessional() {
 
   const handleSubmit = async () => {
     const error = validateStep();
-
     if (error) {
       setSubmitError(error);
       return;
@@ -302,66 +348,52 @@ export function RegisterProfessional() {
       setSubmitError("");
 
       const payload = {
+        cpf: normalizeCpf(form.cpf),
         name: form.name.trim(),
         email: normalizeEmail(form.email),
         phone: normalizePhone(form.phone),
-        cpf: normalizeCpf(form.cpf),
+        password: form.password,
+        cep: normalizeCep(form.cep),
+        endereco: form.endereco.trim(),
+        numero: form.numero.trim(),
+        complemento: form.complemento.trim(),
+        bairro: form.bairro.trim(),
+        city: form.city.trim(),
+        uf: form.uf.trim().toUpperCase(),
+        estado: form.estado.trim(),
         categoryIds: form.categoryIds,
         description: form.description.trim(),
         experience: form.experience,
         price: form.price,
         priceUnit: form.priceUnit,
         area: form.area,
-        cep: form.cep.trim(),
-        city: form.city.trim(),
-        online: form.online,
-        documents: {
-          photoName: form.photo?.name ?? null,
-          rgName: form.rg?.name ?? null,
-          cpfDocName: form.cpfDoc?.name ?? null,
-          selfieName: form.selfie?.name ?? null,
-        },
+        online: form.online
       };
 
       const response = await fetch(apiPath("/api/professionals/register"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        let message = "Não foi possível enviar o cadastro.";
-
+        let message = "Nao foi possivel enviar o cadastro.";
         try {
           const errorData = await response.json();
-          if (errorData?.message) {
-            message = errorData.message;
-          }
+          if (errorData?.message) message = errorData.message;
         } catch {
           // sem json
         }
-
         throw new Error(message);
       }
 
       setDone(true);
     } catch (error) {
-      console.error(error);
-      setSubmitError(
-        error instanceof Error ? error.message : "Erro ao enviar cadastro."
-      );
+      setSubmitError(error instanceof Error ? error.message : "Erro ao enviar cadastro.");
     } finally {
       setLoading(false);
     }
   };
-
-  const renderFileName = (file: File | null) => {
-    if (!file) return "Clique para enviar (JPG, PNG, PDF)";
-    return `✅ ${file.name}`;
-  };
-
   if (done) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -371,20 +403,13 @@ export function RegisterProfessional() {
           </div>
 
           <h2 className="text-gray-900 mb-2">Cadastro enviado!</h2>
-
-          <p className="text-gray-500 text-sm mb-2">
-            Sua solicitação foi recebida. Nossa equipe irá analisar seus documentos.
-          </p>
-
-          <p className="text-gray-400 text-xs mb-6">
-            Você receberá uma resposta assim que a análise for concluída.
-          </p>
+          <p className="text-gray-500 text-sm mb-6">Sua solicitacao foi recebida.</p>
 
           <button
             onClick={() => navigate("/")}
             className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors"
           >
-            Voltar ao início
+            Voltar ao inicio
           </button>
         </div>
       </div>
@@ -404,22 +429,11 @@ export function RegisterProfessional() {
               <MapPin className="w-9 h-9" />
             </span>
 
-            <span
-              className="text-primary tracking-tight"
-              style={{ fontWeight: 800, fontSize: "3.15rem" }}
-            >
+            <span className="text-primary tracking-tight" style={{ fontWeight: 800, fontSize: "3.15rem" }}>
               Zen<span className="text-accent">try</span>
             </span>
           </button>
-          <p className="mt-2 text-xs text-gray-500">
-            Clique na logo para voltar ao site
-          </p>
-        </div>
-        <div className="text-center mb-8">
-          <h2 className="text-center mb-8">
-            Comece a receber clientes perto de você
-          </h2>
-          
+          <p className="mt-2 text-xs text-gray-500">Clique na logo para voltar ao site</p>
         </div>
 
         <div className="flex items-center justify-center mb-8">
@@ -435,11 +449,7 @@ export function RegisterProfessional() {
                       : "bg-gray-200 text-gray-400"
                   }`}
                 >
-                  {step > currentStep.id ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    <currentStep.icon className="w-4 h-4" />
-                  )}
+                  {step > currentStep.id ? <CheckCircle className="w-5 h-5" /> : currentStep.id}
                 </div>
 
                 <span
@@ -464,384 +474,261 @@ export function RegisterProfessional() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           {step === 1 && (
-            <div className="flex flex-col gap-4">
-              <h3 className="text-gray-900 mb-2">Seus dados pessoais</h3>
-
-              <div className="flex flex-col items-center mb-4">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden">
-                    {form.photo ? (
-                      <img
-                        src={URL.createObjectURL(form.photo)}
-                        alt="Foto do profissional"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Camera className="w-8 h-8 text-gray-400" />
-                    )}
-                  </div>
-
-                  <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-md hover:bg-blue-700 transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-white" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => update("photo", e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                </div>
-
-                <p className="text-xs text-gray-400 mt-3">
-                  Foto profissional (obrigatório)
-                </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">CPF *</label>
+                <input
+                  value={form.cpf}
+                  onChange={(e) => update("cpf", formatCpf(e.target.value))}
+                  onBlur={() => touchStepOneField("cpf")}
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("cpf") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.cpf}</p>}
+                {cpfLookupLoading && <p className="mt-1 text-xs text-gray-500">Buscando cadastro por CPF...</p>}
+                {!cpfLookupLoading && cpfLookupMessage && <p className="mt-1 text-xs text-green-600">{cpfLookupMessage}</p>}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
-                  <label className="text-xs text-gray-500 mb-1 block">
-                    Nome completo *
-                  </label>
-                  <input
-                    value={form.name}
-                    onChange={(e) => update("name", e.target.value)}
-                    onBlur={() => touchStepOneField("name")}
-                    placeholder="Carlos Eduardo Silva"
-                    className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none ${
-                      shouldShowStepOneError("name")
-                        ? "border-red-300 focus:border-red-500"
-                        : "border-gray-200 focus:border-blue-400"
-                    }`}
-                  />
-                  {shouldShowStepOneError("name") && (
-                    <p className="mt-1 text-xs text-red-600">{stepOneErrors.name}</p>
-                  )}
-                </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Nome completo *</label>
+                <input
+                  value={form.name}
+                  onChange={(e) => update("name", e.target.value)}
+                  onBlur={() => touchStepOneField("name")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("name") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.name}</p>}
+              </div>
 
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">E-mail *</label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => update("email", e.target.value)}
-                    onBlur={() => touchStepOneField("email")}
-                    placeholder="email@exemplo.com"
-                    className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none ${
-                      shouldShowStepOneError("email")
-                        ? "border-red-300 focus:border-red-500"
-                        : "border-gray-200 focus:border-blue-400"
-                    }`}
-                  />
-                  {shouldShowStepOneError("email") && (
-                    <p className="mt-1 text-xs text-red-600">{stepOneErrors.email}</p>
-                  )}
-                </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">E-mail *</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => update("email", e.target.value)}
+                  onBlur={() => touchStepOneField("email")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("email") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.email}</p>}
+              </div>
 
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">
-                    Telefone / WhatsApp *
-                  </label>
-                  <input
-                    value={form.phone}
-                    onChange={(e) => update("phone", formatPhone(e.target.value))}
-                    onBlur={() => touchStepOneField("phone")}
-                    placeholder="(11) 99999-9999"
-                    maxLength={15}
-                    className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none ${
-                      shouldShowStepOneError("phone")
-                        ? "border-red-300 focus:border-red-500"
-                        : "border-gray-200 focus:border-blue-400"
-                    }`}
-                  />
-                  {shouldShowStepOneError("phone") && (
-                    <p className="mt-1 text-xs text-red-600">{stepOneErrors.phone}</p>
-                  )}
-                </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Telefone *</label>
+                <input
+                  value={form.phone}
+                  onChange={(e) => update("phone", formatPhone(e.target.value))}
+                  onBlur={() => touchStepOneField("phone")}
+                  maxLength={15}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("phone") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.phone}</p>}
+              </div>
 
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">CPF *</label>
-                  <input
-                    value={form.cpf}
-                    onChange={(e) => update("cpf", formatCpf(e.target.value))}
-                    onBlur={() => touchStepOneField("cpf")}
-                    placeholder="000.000.000-00"
-                    maxLength={14}
-                    className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none ${
-                      shouldShowStepOneError("cpf")
-                        ? "border-red-300 focus:border-red-500"
-                        : "border-gray-200 focus:border-blue-400"
-                    }`}
-                  />
-                  {shouldShowStepOneError("cpf") && (
-                    <p className="mt-1 text-xs text-red-600">{stepOneErrors.cpf}</p>
-                  )}
-                </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Senha *</label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => update("password", e.target.value)}
+                  onBlur={() => touchStepOneField("password")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("password") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.password}</p>}
+              </div>
 
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">CEP</label>
-                  <input
-                    value={form.cep}
-                    onChange={(e) => update("cep", e.target.value)}
-                    placeholder="00000-000"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
-                  />
-                </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Confirmar senha *</label>
+                <input
+                  type="password"
+                  value={form.confirmPassword}
+                  onChange={(e) => update("confirmPassword", e.target.value)}
+                  onBlur={() => touchStepOneField("confirmPassword")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("confirmPassword") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.confirmPassword}</p>}
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">CEP *</label>
+                <input
+                  value={form.cep}
+                  onChange={(e) => update("cep", formatCep(e.target.value))}
+                  onBlur={() => {
+                    touchStepOneField("cep");
+                    void buscarCep();
+                  }}
+                  maxLength={9}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("cep") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.cep}</p>}
+                {cepLookupLoading && <p className="mt-1 text-xs text-gray-500">Buscando endereco pelo CEP...</p>}
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="text-xs text-gray-500 mb-1 block">Endereco *</label>
+                <input
+                  value={form.endereco}
+                  onChange={(e) => update("endereco", e.target.value)}
+                  onBlur={() => touchStepOneField("endereco")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("endereco") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.endereco}</p>}
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Numero *</label>
+                <input
+                  value={form.numero}
+                  onChange={(e) => update("numero", e.target.value)}
+                  onBlur={() => touchStepOneField("numero")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("numero") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.numero}</p>}
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Complemento</label>
+                <input
+                  value={form.complemento}
+                  onChange={(e) => update("complemento", e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Bairro *</label>
+                <input
+                  value={form.bairro}
+                  onChange={(e) => update("bairro", e.target.value)}
+                  onBlur={() => touchStepOneField("bairro")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("bairro") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.bairro}</p>}
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Cidade *</label>
+                <input
+                  value={form.city}
+                  onChange={(e) => update("city", e.target.value)}
+                  onBlur={() => touchStepOneField("city")}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("city") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.city}</p>}
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">UF *</label>
+                <input
+                  value={form.uf}
+                  onChange={(e) => update("uf", e.target.value.toUpperCase())}
+                  onBlur={() => touchStepOneField("uf")}
+                  maxLength={2}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {shouldShowStepOneError("uf") && <p className="mt-1 text-xs text-red-600">{stepOneErrors.uf}</p>}
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Estado</label>
+                <input
+                  value={form.estado}
+                  onChange={(e) => update("estado", e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
               </div>
             </div>
           )}
 
           {step === 2 && (
             <div className="flex flex-col gap-4">
-              <h3 className="text-gray-900 mb-2">Sua profissão</h3>
+              <h3 className="text-gray-900">Sua profissao</h3>
 
-              <div>
-                <label className="text-xs text-gray-500 mb-2 block">
-                  Categorias *
-                </label>
+              {loadingCategories ? (
+                <div className="p-4 border border-gray-200 rounded-xl text-sm text-gray-500">Carregando categorias...</div>
+              ) : categoriesError ? (
+                <div className="p-4 border border-red-200 bg-red-50 rounded-xl text-sm text-red-600">{categoriesError}</div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {categories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => toggleCategory(category.id)}
+                      className={`p-3 rounded-xl border-2 text-sm text-left transition-all ${
+                        form.categoryIds.includes(String(category.id))
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      }`}
+                    >
+                      {category.label}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-                {loadingCategories ? (
-                  <div className="p-4 border border-gray-200 rounded-xl text-sm text-gray-500">
-                    Carregando categorias...
-                  </div>
-                ) : categoriesError ? (
-                  <div className="p-4 border border-red-200 bg-red-50 rounded-xl text-sm text-red-600">
-                    {categoriesError}
-                  </div>
-                ) : categories.length === 0 ? (
-                  <div className="p-4 border border-gray-200 rounded-xl text-sm text-gray-500">
-                    Nenhuma categoria disponível.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {categories.map((category) => (
-                      <button
-                        key={category.id}
-                        type="button"
-                        onClick={() => toggleCategory(category.id)}
-                        className={`flex items-center gap-2 p-3 rounded-xl border-2 text-sm text-left transition-all ${
-                          form.categoryIds.includes(String(category.id))
-                            ? "border-blue-500 bg-blue-50 text-blue-700"
-                            : "border-gray-200 text-gray-600 hover:border-gray-300"
-                        }`}
-                      >
-                        <span className="text-lg" aria-hidden="true">
-                          {getCategoryEmoji(category)}
-                        </span>
-                        <span>{category.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <select
+                value={form.experience}
+                onChange={(e) => update("experience", e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+              >
+                <option value="">Selecionar experiencia...</option>
+                <option value="1">Menos de 1 ano</option>
+                <option value="2">1 a 3 anos</option>
+                <option value="5">3 a 5 anos</option>
+                <option value="10">5 a 10 anos</option>
+                <option value="10+">Mais de 10 anos</option>
+              </select>
 
-                {form.categoryIds.length > 0 && (
-                  <p className="text-xs text-blue-600 mt-2">
-                    {form.categoryIds.length} categoria(s) selecionada(s)
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">
-                  Anos de experiência
-                </label>
-                <select
-                  value={form.experience}
-                  onChange={(e) => update("experience", e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
-                >
-                  <option value="">Selecionar...</option>
-                  <option value="1">Menos de 1 ano</option>
-                  <option value="2">1 a 3 anos</option>
-                  <option value="5">3 a 5 anos</option>
-                  <option value="10">5 a 10 anos</option>
-                  <option value="10+">Mais de 10 anos</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">
-                  Descrição dos serviços *
-                </label>
-                <textarea
-                  rows={4}
-                  value={form.description}
-                  onChange={(e) => update("description", e.target.value)}
-                  placeholder="Descreva seus serviços, especialidades e diferenciais..."
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 resize-none"
-                />
-              </div>
+              <textarea
+                rows={4}
+                value={form.description}
+                onChange={(e) => update("description", e.target.value)}
+                placeholder="Descreva seus servicos, especialidades e diferenciais..."
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 resize-none"
+              />
             </div>
           )}
 
           {step === 3 && (
             <div className="flex flex-col gap-4">
-              <h3 className="text-gray-900 mb-2">Preços e área de atendimento</h3>
+              <h3 className="text-gray-900">Precos e area de atendimento</h3>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">
-                    Valor médio (R$) *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                      R$
-                    </span>
-                    <input
-                      type="number"
-                      value={form.price}
-                      onChange={(e) => update("price", e.target.value)}
-                      placeholder="100"
-                      className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Por</label>
-                  <select
-                    value={form.priceUnit}
-                    onChange={(e) => update("priceUnit", e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
-                  >
-                    <option value="hora">Hora</option>
-                    <option value="dia">Dia</option>
-                    <option value="serviço">Serviço</option>
-                    <option value="diária">Diária</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-500 mb-2 block">
-                  Raio de atendimento:{" "}
-                  <span className="text-gray-700 font-semibold">{form.area} km</span>
-                </label>
-
                 <input
-                  type="range"
-                  min={1}
-                  max={50}
-                  value={form.area}
-                  onChange={(e) => update("area", e.target.value)}
-                  className="w-full accent-blue-600"
+                  type="number"
+                  value={form.price}
+                  onChange={(e) => update("price", e.target.value)}
+                  placeholder="Valor medio em R$"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
                 />
 
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                  <span>1 km</span>
-                  <span>25 km</span>
-                  <span>50 km</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center mt-2">
-                <div
-                  className="relative flex items-center justify-center rounded-full bg-blue-100 border-2 border-blue-300"
-                  style={{
-                    width: `${Math.min(Number(form.area) * 4, 200)}px`,
-                    height: `${Math.min(Number(form.area) * 4, 200)}px`,
-                    transition: "all 0.3s ease",
-                  }}
+                <select
+                  value={form.priceUnit}
+                  onChange={(e) => update("priceUnit", e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
                 >
-                  <div className="absolute w-4 h-4 bg-blue-600 rounded-full" />
-                  <span className="absolute bottom-2 text-xs text-blue-600 font-semibold">
-                    {form.area} km
-                  </span>
-                </div>
+                  <option value="hora">Hora</option>
+                  <option value="dia">Dia</option>
+                  <option value="servico">Servico</option>
+                  <option value="diaria">Diaria</option>
+                </select>
               </div>
 
-              <div>
-                <label className="text-xs text-gray-500 mb-2 block">
-                  Disponibilidade
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {weekDays.map((day) => (
-                    <button
-                      key={day}
-                      type="button"
-                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:border-blue-300 hover:bg-blue-50 transition-colors"
-                    >
-                      {day}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="flex flex-col gap-4">
-              <h3 className="text-gray-900 mb-1">Documentos para verificação</h3>
-
-              <p className="text-sm text-gray-500 mb-3">
-                Seus documentos são analisados pela nossa equipe e não são exibidos
-                publicamente.
-              </p>
-
-              {[
-                {
-                  key: "rg" as const,
-                  label: "RG ou CNH (frente e verso)",
-                  icon: "🪪",
-                  file: form.rg,
-                },
-                {
-                  key: "cpfDoc" as const,
-                  label: "CPF (foto ou PDF)",
-                  icon: "📄",
-                  file: form.cpfDoc,
-                },
-                {
-                  key: "selfie" as const,
-                  label: "Selfie segurando o RG",
-                  icon: "🤳",
-                  file: form.selfie,
-                },
-              ].map((doc) => (
-                <label
-                  key={doc.key}
-                  className="flex items-center gap-3 p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-all"
-                >
-                  <span className="text-2xl">{doc.icon}</span>
-
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-700">{doc.label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {renderFileName(doc.file)}
-                    </p>
-                  </div>
-
-                  <Upload className="w-4 h-4 text-gray-400" />
-
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    className="hidden"
-                    onChange={(e) => update(doc.key, e.target.files?.[0] ?? null)}
-                  />
-                </label>
-              ))}
-
-              <div className="bg-blue-50 rounded-xl p-4 mt-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm text-blue-800 font-semibold">
-                    Badge "Profissional Verificado"
-                  </span>
-                </div>
-
-                <p className="text-xs text-blue-600">
-                  Após aprovação, seu perfil poderá receber o selo de verificação.
-                </p>
-              </div>
+              <input
+                type="range"
+                min={1}
+                max={50}
+                value={form.area}
+                onChange={(e) => update("area", e.target.value)}
+                className="w-full accent-blue-600"
+              />
 
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>
-                  <p className="text-sm text-gray-700 font-semibold">
-                    Ficar online após aprovação
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Receba solicitações automaticamente
-                  </p>
+                  <p className="text-sm text-gray-700 font-semibold">Ficar online apos aprovacao</p>
+                  <p className="text-xs text-gray-400">Receba solicitacoes automaticamente</p>
                 </div>
 
                 <button
@@ -862,9 +749,7 @@ export function RegisterProfessional() {
           )}
 
           {submitError && (
-            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-              {submitError}
-            </div>
+            <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</div>
           )}
 
           <div className="flex justify-between mt-8 pt-5 border-t border-gray-100">
@@ -876,15 +761,14 @@ export function RegisterProfessional() {
               <ChevronLeft className="w-4 h-4" />
               Voltar
             </button>
-            
 
-            {step < 4 ? (
+            {step < 3 ? (
               <button
                 onClick={nextStep}
                 disabled={loading}
                 className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-60"
               >
-                Próximo
+                Proximo
                 <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
@@ -907,4 +791,5 @@ export function RegisterProfessional() {
     </div>
   );
 }
+
 export default RegisterProfessional;
