@@ -14,6 +14,7 @@ import {
   Eye,
   RefreshCw,
 } from "lucide-react";
+import { getAuthorizationHeader } from "../utils/auth";
 
 type AdminTab =
   | "overview"
@@ -153,7 +154,11 @@ const categoryColors = [
       setLoading(true);
       setError("");
 
-      const response = await fetch("/api/admin/dashboard");
+      const response = await fetch("/api/admin/dashboard", {
+        headers: {
+          ...getAuthorizationHeader(),
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Não foi possível carregar o painel administrativo.");
@@ -200,6 +205,9 @@ const categoryColors = [
 
       const response = await fetch(`/api/admin/professionals/${id}/approve`, {
         method: "POST",
+        headers: {
+          ...getAuthorizationHeader(),
+        },
       });
 
       if (!response.ok) {
@@ -225,6 +233,9 @@ const categoryColors = [
 
       const response = await fetch(`/api/admin/professionals/${id}/reject`, {
         method: "POST",
+        headers: {
+          ...getAuthorizationHeader(),
+        },
       });
 
       if (!response.ok) {
@@ -343,7 +354,7 @@ const categoryColors = [
               <h1 className="text-white" style={{ fontWeight: 700 }}>
                 Painel Administrativo
               </h1>
-              <p className="text-slate-400 text-sm">ResolveAqui · Gestão</p>
+              <p className="text-slate-400 text-sm">Zentry · Gestão</p>
             </div>
 
             {pendingList.length > 0 && (

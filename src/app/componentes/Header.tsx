@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
   MapPin,
@@ -11,24 +11,29 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
+import {
+  clearAuthStorage,
+  getStoredUserRole,
+  isAuthenticated,
+  refreshStoredUserFromApi,
+  type UserRole,
+} from "../utils/auth";
 
 const navItems = [
-  { to: "/", label: "Início" },
+  { to: "/", label: "InÃ­cio" },
   { to: "/profissionais", label: "Profissionais" },
   { to: "/contato", label: "Contato" },
-  // { to: "/admin", label: "Admin" },
 ];
 
-const readAuthState = () => {
-  if (typeof window === "undefined") return false;
-  return Boolean(window.localStorage.getItem("token"));
-};
+const readAuthState = () => isAuthenticated();
+const readUserRole = () => getStoredUserRole();
 
 function Header() {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(readAuthState);
+  const [userRole, setUserRole] = useState<UserRole | null>(readUserRole);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,9 +60,23 @@ function Header() {
   useEffect(() => {
     const syncAuthState = () => {
       setIsLoggedIn(readAuthState());
+      setUserRole(readUserRole());
     };
 
-    syncAuthState();
+    const syncFromApi = async () => {
+      syncAuthState();
+      if (!isAuthenticated()) return;
+
+      try {
+        await refreshStoredUserFromApi();
+      } catch {
+        // Mantem o estado local quando houver falha de rede.
+      }
+
+      syncAuthState();
+    };
+
+    void syncFromApi();
     window.addEventListener("storage", syncAuthState);
 
     return () => {
@@ -66,12 +85,9 @@ function Header() {
   }, [pathname]);
 
   const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("token");
-      window.localStorage.removeItem("user");
-    }
-
+    clearAuthStorage();
     setIsLoggedIn(false);
+    setUserRole(null);
     setUserMenuOpen(false);
   };
 
@@ -116,7 +132,7 @@ function Header() {
                 <>
                   <button
                     className="relative p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
-                    aria-label="Notificações"
+                    aria-label="NotificaÃ§Ãµes"
                   >
                     <Bell className="w-5 h-5" />
                     <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
@@ -132,7 +148,7 @@ function Header() {
                       </span>
 
                       <span className="hidden md:block text-sm text-gray-700">
-                        Usuário
+                        {userRole === "admin" ? "Admin" : "Usuário"}
                       </span>
                     </button>
 
@@ -146,13 +162,15 @@ function Header() {
                           Meu Painel
                         </Link>
 
-                        <Link
-                          to="/admin"
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          <ShieldCheck className="w-4 h-4" />
-                          Admin
-                        </Link>
+                        {userRole === "admin" && (
+                          <Link
+                            to="/admin"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            Admin
+                          </Link>
+                        )}
 
                         <hr className="my-1 border-gray-100" />
 
@@ -233,3 +251,5 @@ function Header() {
 }
 
 export default Header;
+
+

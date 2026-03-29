@@ -77,7 +77,7 @@ interface DashboardResponse {
   activeChatProfessional?: DashboardProfessional | null;
 }
 
-function getAuthorizationHeader() {
+function getAuthorizationHeader(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const token = window.localStorage.getItem("token");
   return token ? { Authorization: `Bearer ${token}` } : {};

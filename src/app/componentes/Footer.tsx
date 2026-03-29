@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   MapPin,
@@ -9,13 +10,18 @@ import {
   ShieldCheck,
   Clock3,
 } from "lucide-react";
+import {
+  isStoredUserAdmin,
+  isAuthenticated,
+  refreshStoredUserFromApi
+} from "../utils/auth";
 
-const serviceLinks = [
+const baseServiceLinks = [
   { to: "/profissionais", label: "Buscar profissionais" },
   { to: "/cadastrar-profissional", label: "Seja um profissional" },
-  { to: "/admin", label: "Painel administrativo" },
   { to: "/login", label: "Minha conta" },
 ];
+const adminServiceLink = { to: "/admin", label: "Painel administrativo" };
 
 const companyLinks = [
   { to: "/", label: "Como funciona" },
@@ -24,6 +30,36 @@ const companyLinks = [
 ];
 
 function Footer() {
+  const [isAdmin, setIsAdmin] = useState(() => isStoredUserAdmin());
+
+  useEffect(() => {
+    const syncRole = () => {
+      setIsAdmin(isStoredUserAdmin());
+    };
+
+    const syncFromApi = async () => {
+      syncRole();
+      if (!isAuthenticated()) return;
+
+      try {
+        await refreshStoredUserFromApi();
+      } catch {
+        // Mantem o papel atual quando houver falha de rede.
+      }
+
+      syncRole();
+    };
+
+    void syncFromApi();
+    window.addEventListener("storage", syncRole);
+
+    return () => {
+      window.removeEventListener("storage", syncRole);
+    };
+  }, []);
+
+  const serviceLinks = isAdmin ? [...baseServiceLinks, adminServiceLink] : baseServiceLinks;
+
   return (
     <footer className="relative border-t border-primary/60 bg-gradient-to-b from-primary via-primary/90 to-secondary text-primary-foreground">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />

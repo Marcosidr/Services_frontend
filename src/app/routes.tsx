@@ -9,6 +9,7 @@ import RegisterProfessional from "./pages/RegisterProfessional";
 import UserDashboard from "./pages/UserDashboard";
 import AdminPainel from "./pages/AdminPainel";
 import Contato from "./pages/contato";
+import RequireAdmin from "./componentes/RequireAdmin";
 
 export const router = createBrowserRouter([
   {
@@ -20,7 +21,14 @@ export const router = createBrowserRouter([
       { path: "contato", element: <Contato /> },
       { path: "profissional/:id", element: <ProfessionalProfile /> },
       { path: "painel", element: <UserDashboard /> },
-      { path: "admin", element: <AdminPainel /> },
+      {
+        path: "admin",
+        element: (
+          <RequireAdmin>
+            <AdminPainel />
+          </RequireAdmin>
+        ),
+      },
     ],
   },
   {
