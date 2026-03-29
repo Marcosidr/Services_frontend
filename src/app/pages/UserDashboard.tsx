@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ClipboardList,
   MessageCircle,
@@ -13,6 +13,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
+import { getAuthorizationHeader } from "../utils/auth";
 
 type Tab = "pedidos" | "chat" | "avaliacoes" | "pagamento";
 
@@ -29,6 +30,11 @@ interface DashboardMessage {
   sender: "user" | "professional";
   text: string;
   time: string;
+  senderId?: number;
+  receiverId?: number;
+  conversationId?: string;
+  read?: boolean;
+  createdAt?: string;
 }
 
 interface DashboardProfessional {
@@ -77,10 +83,65 @@ interface DashboardResponse {
   activeChatProfessional?: DashboardProfessional | null;
 }
 
-function getAuthorizationHeader(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  const token = window.localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+type ApiChatMessage = {
+  id: string;
+  sender: "user" | "professional";
+  text: string;
+  time?: string;
+  senderId?: number;
+  receiverId?: number;
+  conversationId?: string;
+  read?: boolean;
+  createdAt?: string;
+};
+
+type MessagesResponse = {
+  items?: ApiChatMessage[];
+};
+
+type ConversationSummary = {
+  conversationId: string;
+  otherUserId: number;
+  otherUserName: string;
+  lastMessage: {
+    id: string;
+    senderId: number;
+    text: string;
+    read: boolean;
+    time?: string;
+    createdAt?: string;
+  };
+  unreadCount: number;
+};
+
+type ConversationsResponse = {
+  items?: ConversationSummary[];
+};
+
+function parsePositiveInteger(value: string | null) {
+  if (!value || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
+function normalizeChatMessage(message: ApiChatMessage): DashboardMessage {
+  return {
+    id: message.id,
+    sender: message.sender,
+    text: message.text,
+    time:
+      message.time ??
+      new Date(message.createdAt ?? Date.now()).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit"
+      }),
+    senderId: message.senderId,
+    receiverId: message.receiverId,
+    conversationId: message.conversationId,
+    read: message.read,
+    createdAt: message.createdAt
+  };
 }
 
 const statusConfig: Record<
@@ -120,6 +181,7 @@ const statusConfig: Record<
 
  function UserDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [activeTab, setActiveTab] = useState<Tab>("pedidos");
   const [chatMessage, setChatMessage] = useState("");
@@ -130,6 +192,7 @@ const statusConfig: Record<
   const [user, setUser] = useState<DashboardUser | null>(null);
   const [activeChatProfessional, setActiveChatProfessional] =
     useState<DashboardProfessional | null>(null);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
 
   const [ratingModal, setRatingModal] = useState<string | null>(null);
   const [ratings, setRatings] = useState<Record<string, number>>({});
@@ -137,6 +200,7 @@ const statusConfig: Record<
   const [ratingSuccess, setRatingSuccess] = useState(false);
 
   const [loading, setLoading] = useState(true);
+  const [loadingConversations, setLoadingConversations] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [error, setError] = useState("");
@@ -168,14 +232,12 @@ const statusConfig: Record<
 
         setUser(data.user ?? null);
         setOrders(Array.isArray(data.orders) ? data.orders : []);
-        setMessages(Array.isArray(data.messages) ? data.messages : []);
         setPaymentMethods(
           Array.isArray(data.paymentMethods) ? data.paymentMethods : []
         );
         setPaymentHistory(
           Array.isArray(data.paymentHistory) ? data.paymentHistory : []
         );
-        setActiveChatProfessional(data.activeChatProfessional ?? null);
       } catch (err) {
         console.error(err);
         setError("Erro ao carregar os dados do painel.");
@@ -201,9 +263,96 @@ const statusConfig: Record<
     return completedOrders.reduce((sum, order) => sum + order.price, 0);
   }, [completedOrders]);
 
+  const loadConversationMessages = async (withUserId: number) => {
+    const response = await fetch(`/api/messages?withUserId=${withUserId}&limit=100`, {
+      headers: {
+        ...getAuthorizationHeader()
+      }
+    });
+
+    if (!response.ok) return;
+
+    const data = (await response.json()) as MessagesResponse;
+    const normalizedMessages = Array.isArray(data.items)
+      ? data.items.map((message) => normalizeChatMessage(message))
+      : [];
+
+    setMessages(normalizedMessages);
+  };
+
+  const loadConversations = async (
+    preferredUserId: number | null = null,
+    preferredUserName = ""
+  ) => {
+    try {
+      setLoadingConversations(true);
+
+      const response = await fetch("/api/messages/conversations?limit=50", {
+        headers: {
+          ...getAuthorizationHeader()
+        }
+      });
+
+      if (!response.ok) return;
+
+      const data = (await response.json()) as ConversationsResponse;
+      const items = Array.isArray(data.items) ? data.items : [];
+      setConversations(items);
+
+      const activeUserId = parsePositiveInteger(activeChatProfessional?.id ?? null);
+      const nextUserId =
+        preferredUserId ??
+        activeUserId ??
+        (items.length > 0 ? items[0].otherUserId : null);
+
+      if (!nextUserId) {
+        setActiveChatProfessional(null);
+        setMessages([]);
+        return;
+      }
+
+      const selectedConversation = items.find((item) => item.otherUserId === nextUserId);
+      const selectedUserName =
+        preferredUserName ||
+        selectedConversation?.otherUserName ||
+        activeChatProfessional?.name ||
+        `Conversa #${nextUserId}`;
+
+      setActiveChatProfessional({
+        id: String(nextUserId),
+        name: selectedUserName,
+        categoryLabel: "Mensagem direta",
+        online: false
+      });
+
+      await loadConversationMessages(nextUserId);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingConversations(false);
+    }
+  };
+
+  const openConversation = async (withUserId: number, withUserName = "") => {
+    setActiveChatProfessional({
+      id: String(withUserId),
+      name: withUserName || `Conversa #${withUserId}`,
+      categoryLabel: "Mensagem direta",
+      online: false
+    });
+    setActiveTab("chat");
+
+    try {
+      await loadConversationMessages(withUserId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const sendMessage = async () => {
     if (!chatMessage.trim()) return;
-    if (!activeChatProfessional?.id) return;
+    const activeChat = activeChatProfessional;
+    if (!activeChat?.id) return;
 
     const optimisticMessage: DashboardMessage = {
       id: `temp-${Date.now()}`,
@@ -221,14 +370,14 @@ const statusConfig: Record<
     try {
       setSendingMessage(true);
 
-      const response = await fetch("/api/dashboard/messages", {
+      const response = await fetch("/api/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...getAuthorizationHeader(),
         },
         body: JSON.stringify({
-          professionalId: activeChatProfessional.id,
+          recipientId: Number(activeChat.id),
           text: optimisticMessage.text,
         }),
       });
@@ -237,11 +386,23 @@ const statusConfig: Record<
         throw new Error("Não foi possível enviar a mensagem.");
       }
 
-      const savedMessage: DashboardMessage = await response.json();
+      const savedMessage = (await response.json()) as ApiChatMessage;
+      const normalizedSavedMessage = normalizeChatMessage(savedMessage);
 
       setMessages((prev) =>
-        prev.map((msg) => (msg.id === optimisticMessage.id ? savedMessage : msg))
+        prev.map((msg) =>
+          msg.id === optimisticMessage.id
+            ? normalizedSavedMessage
+            : msg
+        )
       );
+
+      const activeRecipientId = Number(activeChat.id);
+      if (Number.isSafeInteger(activeRecipientId) && activeRecipientId > 0) {
+        await loadConversations(activeRecipientId, activeChat.name);
+      } else {
+        await loadConversations();
+      }
     } catch (err) {
       console.error(err);
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id));
@@ -320,16 +481,30 @@ const statusConfig: Record<
   };
 
   const showChatFromOrder = (order: DashboardOrder) => {
-    setActiveChatProfessional(
-      order.professional ?? {
-        id: order.professionalId,
-        name: order.professionalName,
-        categoryLabel: order.category,
-        online: true,
-      }
-    );
-    setActiveTab("chat");
+    const professionalId = parsePositiveInteger(order.professionalId);
+    if (!professionalId) return;
+
+    const professionalName = order.professional?.name ?? order.professionalName;
+    void openConversation(professionalId, professionalName);
+    void loadConversations(professionalId, professionalName);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const chatWith = parsePositiveInteger(params.get("chatWith"));
+    const chatName = (params.get("chatName") ?? "").trim();
+    if (chatWith) {
+      setActiveTab("chat");
+    }
+    void loadConversations(chatWith, chatName);
+  }, [location.search]);
+
+  useEffect(() => {
+    if (activeTab !== "chat") return;
+    if (conversations.length > 0) return;
+
+    void loadConversations();
+  }, [activeTab]);
 
   if (loading) {
     return (
@@ -560,96 +735,164 @@ const statusConfig: Record<
 
         {activeTab === "chat" && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 p-4 border-b border-gray-100 bg-blue-600 text-white">
-              {activeChatProfessional?.photo ? (
-                <img
-                  src={activeChatProfessional.photo}
-                  alt={activeChatProfessional.name}
-                  className="w-9 h-9 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
-                  <User className="w-4 h-4" />
+            <div className="grid grid-cols-1 md:grid-cols-[280px,1fr] min-h-[34rem]">
+              <aside className="border-b md:border-b-0 md:border-r border-gray-100 bg-gray-50">
+                <div className="px-4 py-3 border-b border-gray-100 bg-white">
+                  <p className="text-sm text-gray-800" style={{ fontWeight: 600 }}>
+                    Conversas
+                  </p>
                 </div>
-              )}
 
-              <div>
-                <p style={{ fontWeight: 600 }}>
-                  {activeChatProfessional?.name || "Selecione uma conversa"}
-                </p>
-                <p className="text-xs text-blue-200">
-                  {activeChatProfessional?.categoryLabel || "Sem profissional ativo"}
-                </p>
-              </div>
+                <div className="max-h-[30rem] overflow-y-auto">
+                  {loadingConversations ? (
+                    <p className="px-4 py-4 text-sm text-gray-500">Carregando conversas...</p>
+                  ) : conversations.length === 0 ? (
+                    <p className="px-4 py-4 text-sm text-gray-500">
+                      Você ainda não possui conversas.
+                    </p>
+                  ) : (
+                    conversations.map((conversation) => {
+                      const isActive =
+                        activeChatProfessional?.id === String(conversation.otherUserId);
 
-              {activeChatProfessional && (
-                <div className="ml-auto flex items-center gap-1.5 bg-green-500/20 px-2 py-0.5 rounded-full">
-                  <div className="w-2 h-2 bg-green-400 rounded-full" />
-                  <span className="text-xs text-green-200">
-                    {activeChatProfessional.online ? "Online" : "Offline"}
-                  </span>
+                      return (
+                        <button
+                          key={conversation.conversationId}
+                          onClick={() =>
+                            void openConversation(
+                              conversation.otherUserId,
+                              conversation.otherUserName
+                            )
+                          }
+                          className={`w-full text-left px-4 py-3 border-b border-gray-100 transition-colors ${
+                            isActive ? "bg-blue-50" : "hover:bg-white"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                                isActive ? "bg-blue-100 text-blue-600" : "bg-gray-200 text-gray-500"
+                              }`}
+                            >
+                              <User className="w-4 h-4" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p
+                                  className="text-sm text-gray-800 truncate"
+                                  style={{ fontWeight: isActive ? 700 : 600 }}
+                                >
+                                  {conversation.otherUserName}
+                                </p>
+                                <span className="text-[11px] text-gray-400 flex-shrink-0">
+                                  {conversation.lastMessage.time ??
+                                    new Date(
+                                      conversation.lastMessage.createdAt ?? Date.now()
+                                    ).toLocaleTimeString("pt-BR", {
+                                      hour: "2-digit",
+                                      minute: "2-digit"
+                                    })}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-xs text-gray-500 truncate flex-1">
+                                  {conversation.lastMessage.text}
+                                </p>
+                                {conversation.unreadCount > 0 && (
+                                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center">
+                                    {conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
-              )}
-            </div>
+              </aside>
 
-            <div className="h-80 overflow-y-auto p-4 flex flex-col gap-3 bg-gray-50">
-              {!activeChatProfessional ? (
-                <p className="text-sm text-gray-500 text-center mt-8">
-                  Abra um pedido em andamento para conversar com o profissional.
-                </p>
-              ) : messages.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center mt-8">
-                  Nenhuma mensagem ainda.
-                </p>
-              ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${
-                      msg.sender === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
-                        msg.sender === "user"
-                          ? "bg-blue-600 text-white rounded-br-sm"
-                          : "bg-white text-gray-700 shadow-sm rounded-bl-sm"
-                      }`}
-                    >
-                      <p>{msg.text}</p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          msg.sender === "user"
-                            ? "text-blue-200"
-                            : "text-gray-400"
+              <section className="flex flex-col min-h-[34rem]">
+                <div className="flex items-center gap-3 p-4 border-b border-gray-100 bg-blue-600 text-white">
+                  <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
+                    <User className="w-4 h-4" />
+                  </div>
+
+                  <div>
+                    <p style={{ fontWeight: 600 }}>
+                      {activeChatProfessional?.name || "Selecione uma conversa"}
+                    </p>
+                    <p className="text-xs text-blue-200">
+                      {activeChatProfessional
+                        ? "Conversa ativa"
+                        : "Escolha uma conversa na lista ao lado"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="h-80 overflow-y-auto p-4 flex flex-col gap-3 bg-gray-50 flex-1">
+                  {!activeChatProfessional ? (
+                    <p className="text-sm text-gray-500 text-center mt-8">
+                      Selecione uma conversa para começar.
+                    </p>
+                  ) : messages.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center mt-8">
+                      Nenhuma mensagem ainda.
+                    </p>
+                  ) : (
+                    messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex ${
+                          msg.sender === "user" ? "justify-end" : "justify-start"
                         }`}
                       >
-                        {msg.time}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                        <div
+                          className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
+                            msg.sender === "user"
+                              ? "bg-blue-600 text-white rounded-br-sm"
+                              : "bg-white text-gray-700 shadow-sm rounded-bl-sm"
+                          }`}
+                        >
+                          <p>{msg.text}</p>
+                          <p
+                            className={`text-xs mt-1 ${
+                              msg.sender === "user"
+                                ? "text-blue-200"
+                                : "text-gray-400"
+                            }`}
+                          >
+                            {msg.time}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
 
-            <div className="p-3 border-t border-gray-100 flex gap-2">
-              <input
-                type="text"
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                placeholder="Digite uma mensagem..."
-                disabled={!activeChatProfessional || sendingMessage}
-                className="flex-1 px-4 py-2.5 bg-gray-100 rounded-xl text-sm outline-none disabled:opacity-60"
-              />
+                <div className="p-3 border-t border-gray-100 flex gap-2">
+                  <input
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                    placeholder="Digite uma mensagem..."
+                    disabled={!activeChatProfessional || sendingMessage}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 rounded-xl text-sm outline-none disabled:opacity-60"
+                  />
 
-              <button
-                onClick={sendMessage}
-                disabled={!activeChatProfessional || sendingMessage}
-                className="bg-blue-600 text-white p-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-60"
-              >
-                <Send className="w-4 h-4" />
-              </button>
+                  <button
+                    onClick={sendMessage}
+                    disabled={!activeChatProfessional || sendingMessage}
+                    className="bg-blue-600 text-white p-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-60"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </section>
             </div>
           </div>
         )}

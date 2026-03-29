@@ -1,5 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   MapPin,
   Bell,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   clearAuthStorage,
+  getAuthorizationHeader,
   getStoredUserRole,
   isAuthenticated,
   refreshStoredUserFromApi,
@@ -20,25 +21,66 @@ import {
 } from "../utils/auth";
 
 const navItems = [
-  { to: "/", label: "InÃ­cio" },
+  { to: "/", label: "Início" },
   { to: "/profissionais", label: "Profissionais" },
   { to: "/contato", label: "Contato" },
 ];
 
+type NotificationItem = {
+  id: string;
+  type?: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  metadata?: Record<string, unknown> | null;
+};
+
 const readAuthState = () => isAuthenticated();
 const readUserRole = () => getStoredUserRole();
 
+function parsePositiveInteger(value: unknown) {
+  if (typeof value === "number" && Number.isSafeInteger(value) && value > 0) return value;
+  if (typeof value === "string" && /^\d+$/.test(value.trim())) {
+    const parsed = Number(value.trim());
+    if (Number.isSafeInteger(parsed) && parsed > 0) return parsed;
+  }
+  return null;
+}
+
+function getChatTargetFromNotification(notification: NotificationItem) {
+  if (notification.type !== "message") return null;
+  if (!notification.metadata || typeof notification.metadata !== "object") return null;
+
+  const senderId = (notification.metadata as Record<string, unknown>).senderId;
+  return parsePositiveInteger(senderId);
+}
+
+function extractSenderName(notificationMessage: string) {
+  const suffix = " enviou uma mensagem";
+  if (!notificationMessage.endsWith(suffix)) return "";
+
+  return notificationMessage.slice(0, -suffix.length).trim();
+}
+
 function Header() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(readAuthState);
   const [userRole, setUserRole] = useState<UserRole | null>(readUserRole);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMenuOpen(false);
     setUserMenuOpen(false);
+    setNotificationMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -47,6 +89,10 @@ function Header() {
 
       if (userMenuRef.current && !userMenuRef.current.contains(target)) {
         setUserMenuOpen(false);
+      }
+
+      if (notificationMenuRef.current && !notificationMenuRef.current.contains(target)) {
+        setNotificationMenuOpen(false);
       }
     };
 
@@ -57,6 +103,78 @@ function Header() {
     };
   }, []);
 
+  async function loadNotifications(limit = 6) {
+    if (!isAuthenticated()) {
+      setNotifications([]);
+      setUnreadNotifications(0);
+      return;
+    }
+
+    try {
+      setLoadingNotifications(true);
+
+      const response = await fetch(`/api/notifications?limit=${limit}`, {
+        headers: {
+          ...getAuthorizationHeader()
+        }
+      });
+
+      if (!response.ok) return;
+
+      const data = (await response.json()) as {
+        items?: NotificationItem[];
+        unreadCount?: number;
+      };
+
+      setNotifications(Array.isArray(data.items) ? data.items : []);
+      setUnreadNotifications(
+        typeof data.unreadCount === "number" && data.unreadCount > 0 ? data.unreadCount : 0
+      );
+    } catch {
+      // Mantem estado anterior em caso de erro de rede.
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }
+
+  async function markNotificationAsRead(notificationId: string) {
+    try {
+      const response = await fetch(`/api/notifications/${notificationId}/read`, {
+        method: "PATCH",
+        headers: {
+          ...getAuthorizationHeader()
+        }
+      });
+
+      if (!response.ok) return;
+
+      setNotifications((prev) =>
+        prev.map((item) => (item.id === notificationId ? { ...item, isRead: true } : item))
+      );
+      setUnreadNotifications((prev) => Math.max(prev - 1, 0));
+    } catch {
+      // Ignora falha pontual.
+    }
+  }
+
+  async function markAllNotificationsAsRead() {
+    try {
+      const response = await fetch("/api/notifications/read-all", {
+        method: "PATCH",
+        headers: {
+          ...getAuthorizationHeader()
+        }
+      });
+
+      if (!response.ok) return;
+
+      setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+      setUnreadNotifications(0);
+    } catch {
+      // Ignora falha pontual.
+    }
+  }
+
   useEffect(() => {
     const syncAuthState = () => {
       setIsLoggedIn(readAuthState());
@@ -65,7 +183,11 @@ function Header() {
 
     const syncFromApi = async () => {
       syncAuthState();
-      if (!isAuthenticated()) return;
+      if (!isAuthenticated()) {
+        setNotifications([]);
+        setUnreadNotifications(0);
+        return;
+      }
 
       try {
         await refreshStoredUserFromApi();
@@ -74,6 +196,7 @@ function Header() {
       }
 
       syncAuthState();
+      await loadNotifications();
     };
 
     void syncFromApi();
@@ -84,11 +207,26 @@ function Header() {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const intervalId = window.setInterval(() => {
+      void loadNotifications();
+    }, 30000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isLoggedIn]);
+
   const handleLogout = () => {
     clearAuthStorage();
     setIsLoggedIn(false);
     setUserRole(null);
+    setNotifications([]);
+    setUnreadNotifications(0);
     setUserMenuOpen(false);
+    setNotificationMenuOpen(false);
   };
 
   return (
@@ -130,17 +268,97 @@ function Header() {
             <div className="flex items-center gap-2 shrink-0">
               {isLoggedIn ? (
                 <>
-                  <button
-                    className="relative p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
-                    aria-label="NotificaÃ§Ãµes"
-                  >
-                    <Bell className="w-5 h-5" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full" />
-                  </button>
+                  <div className="relative" ref={notificationMenuRef}>
+                    <button
+                      onClick={() => {
+                        setNotificationMenuOpen((open) => !open);
+                        setUserMenuOpen(false);
+                      }}
+                      className="relative p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                      aria-label="Notificações"
+                    >
+                      <Bell className="w-5 h-5" />
+                      {unreadNotifications > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-[10px] text-gray-900 flex items-center justify-center">
+                          {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                        </span>
+                      )}
+                    </button>
+
+                    {notificationMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                        <div className="px-3 pb-2 flex items-center justify-between border-b border-gray-100">
+                          <p className="text-sm text-gray-800" style={{ fontWeight: 600 }}>
+                            Notificações
+                          </p>
+                          {unreadNotifications > 0 && (
+                            <button
+                              onClick={() => {
+                                void markAllNotificationsAsRead();
+                              }}
+                              className="text-xs text-primary hover:underline"
+                            >
+                              Marcar todas
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="max-h-80 overflow-y-auto">
+                          {loadingNotifications ? (
+                            <p className="px-3 py-4 text-sm text-gray-500">Carregando...</p>
+                          ) : notifications.length === 0 ? (
+                            <p className="px-3 py-4 text-sm text-gray-500">
+                              Nenhuma notificação no momento.
+                            </p>
+                          ) : (
+                            notifications.map((notification) => (
+                              <button
+                                key={notification.id}
+                                onClick={() => {
+                                  if (!notification.isRead) {
+                                    void markNotificationAsRead(notification.id);
+                                  }
+
+                                  const chatTargetId = getChatTargetFromNotification(notification);
+                                  if (chatTargetId) {
+                                    const query = new URLSearchParams({
+                                      chatWith: String(chatTargetId)
+                                    });
+
+                                    const senderName = extractSenderName(notification.message);
+                                    if (senderName) {
+                                      query.set("chatName", senderName);
+                                    }
+
+                                    navigate(`/painel?${query.toString()}`);
+                                    setNotificationMenuOpen(false);
+                                  }
+                                }}
+                                className={`w-full text-left px-3 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${
+                                  notification.isRead ? "opacity-70" : ""
+                                }`}
+                              >
+                                <p className="text-sm text-gray-800" style={{ fontWeight: 600 }}>
+                                  {notification.title}
+                                </p>
+                                <p className="text-xs text-gray-600 mt-0.5">{notification.message}</p>
+                                <p className="text-[11px] text-gray-400 mt-1">
+                                  {new Date(notification.createdAt).toLocaleString("pt-BR")}
+                                </p>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="relative" ref={userMenuRef}>
                     <button
-                      onClick={() => setUserMenuOpen((open) => !open)}
+                      onClick={() => {
+                        setUserMenuOpen((open) => !open);
+                        setNotificationMenuOpen(false);
+                      }}
                       className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
                     >
                       <span className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center">

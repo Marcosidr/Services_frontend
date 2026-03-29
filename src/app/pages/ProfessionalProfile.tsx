@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   Star,
@@ -14,6 +14,7 @@ import {
   Award,
   X,
 } from "lucide-react";
+import { getAuthorizationHeader, isAuthenticated } from "../utils/auth";
 
 interface Review {
   id: string | number;
@@ -29,6 +30,18 @@ interface Message {
   text: string;
   time: string;
 }
+
+type ApiMessage = {
+  id: string;
+  sender: "user" | "professional";
+  text: string;
+  time?: string;
+  createdAt?: string;
+};
+
+type MessagesResponse = {
+  items?: ApiMessage[];
+};
 
 interface Professional {
   id: string;
@@ -58,6 +71,8 @@ interface Professional {
   const [showChat, setShowChat] = useState(false);
   const [chatMessage, setChatMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [chatError, setChatError] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
   const [bookingType, setBookingType] = useState<"imediato" | "agendar">("imediato");
   const [selectedDate, setSelectedDate] = useState("");
@@ -98,36 +113,97 @@ interface Professional {
     }
   }, [id]);
 
-  const sendMessage = () => {
-    if (!chatMessage.trim()) return;
+  const sendMessage = async () => {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
 
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      sender: "user",
-      text: chatMessage,
-      time: new Date().toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
+    if (!pro?.id || !chatMessage.trim()) return;
 
-    setMessages((prev) => [...prev, newMessage]);
-    setChatMessage("");
+    try {
+      setSendingMessage(true);
+      setChatError("");
 
-    setTimeout(() => {
-      const replyMessage: Message = {
-        id: `msg-reply-${Date.now()}`,
-        sender: "professional",
-        text: "Mensagem recebida. Retornarei assim que possível.",
-        time: new Date().toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
+      const response = await fetch("/api/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthorizationHeader(),
+        },
+        body: JSON.stringify({
+          recipientId: Number(pro.id),
+          text: chatMessage.trim(),
         }),
-      };
+      });
 
-      setMessages((prev) => [...prev, replyMessage]);
-    }, 1500);
+      if (!response.ok) {
+        throw new Error("Nao foi possivel enviar a mensagem.");
+      }
+
+      const savedMessage = (await response.json()) as ApiMessage;
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: savedMessage.id,
+          sender: savedMessage.sender,
+          text: savedMessage.text,
+          time:
+            savedMessage.time ??
+            new Date(savedMessage.createdAt ?? Date.now()).toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+        },
+      ]);
+      setChatMessage("");
+    } catch (err) {
+      console.error(err);
+      setChatError("Erro ao enviar mensagem.");
+    } finally {
+      setSendingMessage(false);
+    }
   };
+
+  useEffect(() => {
+    async function loadConversation() {
+      if (!showChat || !pro?.id || !isAuthenticated()) return;
+
+      try {
+        setChatError("");
+
+        const response = await fetch(`/api/messages?withUserId=${pro.id}&limit=100`, {
+          headers: {
+            ...getAuthorizationHeader(),
+          },
+        });
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as MessagesResponse;
+        const normalizedMessages = Array.isArray(data.items)
+          ? data.items.map((msg) => ({
+              id: msg.id,
+              sender: msg.sender,
+              text: msg.text,
+              time:
+                msg.time ??
+                new Date(msg.createdAt ?? Date.now()).toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+            }))
+          : [];
+
+        setMessages(normalizedMessages);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    void loadConversation();
+  }, [showChat, pro?.id]);
 
   const handleBooking = () => {
     setBookingSuccess(true);
@@ -475,16 +551,21 @@ interface Professional {
                 onChange={(e) => setChatMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                 placeholder="Digite sua mensagem..."
-                className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm outline-none"
+                disabled={sendingMessage}
+                className="flex-1 px-3 py-2 bg-gray-100 rounded-xl text-sm outline-none disabled:opacity-60"
               />
 
               <button
                 onClick={sendMessage}
-                className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 transition-colors"
+                disabled={sendingMessage}
+                className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-blue-700 transition-colors disabled:opacity-60"
               >
                 Enviar
               </button>
             </div>
+            {chatError && (
+              <p className="px-3 pb-3 text-xs text-red-600">{chatError}</p>
+            )}
           </div>
         </div>
       )}
@@ -644,3 +725,4 @@ interface Professional {
   );
 }
 export default ProfessionalProfile;
+
