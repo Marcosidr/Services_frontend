@@ -74,6 +74,7 @@ function Header() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [clearingNotifications, setClearingNotifications] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationMenuRef = useRef<HTMLDivElement>(null);
 
@@ -172,6 +173,56 @@ function Header() {
       setUnreadNotifications(0);
     } catch {
       // Ignora falha pontual.
+    }
+  }
+
+  async function clearAllNotifications() {
+    if (clearingNotifications) return;
+
+    try {
+      setClearingNotifications(true);
+      const response = await fetch("/api/notifications/clear", {
+        method: "DELETE",
+        headers: {
+          ...getAuthorizationHeader()
+        }
+      });
+
+      if (!response.ok) {
+        // Fallback para backends antigos sem endpoint /clear.
+        const listResponse = await fetch("/api/notifications?limit=100", {
+          headers: {
+            ...getAuthorizationHeader()
+          }
+        });
+
+        if (!listResponse.ok) return;
+
+        const data = (await listResponse.json()) as { items?: NotificationItem[] };
+        const items = Array.isArray(data.items) ? data.items : [];
+        if (items.length === 0) {
+          setNotifications([]);
+          setUnreadNotifications(0);
+          return;
+        }
+
+        await Promise.all(
+          items.map((item) =>
+            fetch(`/api/notifications/${item.id}`, {
+              method: "DELETE",
+              headers: {
+                ...getAuthorizationHeader()
+              }
+            })
+          )
+        );
+      }
+
+      await loadNotifications(100);
+    } catch {
+      // Ignora falha pontual.
+    } finally {
+      setClearingNotifications(false);
     }
   }
 
@@ -299,6 +350,17 @@ function Header() {
                               className="text-xs text-primary hover:underline"
                             >
                               Marcar todas
+                            </button>
+                          )}
+                          {notifications.length > 0 && (
+                            <button
+                              onClick={() => {
+                                void clearAllNotifications();
+                              }}
+                              disabled={clearingNotifications}
+                              className="text-xs text-red-500 hover:underline disabled:opacity-50"
+                            >
+                              {clearingNotifications ? "Limpando..." : "Limpar notificações"}
                             </button>
                           )}
                         </div>
