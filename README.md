@@ -1,84 +1,69 @@
-# Front-end (React + Vite)
+# Frontend - Zentry (React + Vite)
 
-## Dependencias em uso (`package.json`)
+## 1. O que precisa baixar
 
-### Producao (`dependencies`)
+1. Node.js 20+ (recomendado LTS)
+2. npm 10+ (vem com Node)
+3. Git
+4. VS Code (opcional, mas recomendado)
 
-- `@radix-ui/react-accordion`: `^1.2.12`
-- `@radix-ui/react-alert-dialog`: `^1.1.15`
-- `@radix-ui/react-aspect-ratio`: `^1.1.8`
-- `@radix-ui/react-avatar`: `^1.1.11`
-- `@radix-ui/react-checkbox`: `^1.3.3`
-- `@radix-ui/react-collapsible`: `^1.1.12`
-- `@radix-ui/react-context-menu`: `^2.2.16`
-- `@radix-ui/react-dialog`: `^1.1.15`
-- `@radix-ui/react-dropdown-menu`: `^2.1.16`
-- `@radix-ui/react-hover-card`: `^1.1.15`
-- `@radix-ui/react-label`: `^2.1.8`
-- `@radix-ui/react-menubar`: `^1.1.16`
-- `@radix-ui/react-navigation-menu`: `^1.2.14`
-- `@radix-ui/react-popover`: `^1.1.15`
-- `@radix-ui/react-progress`: `^1.1.8`
-- `@radix-ui/react-radio-group`: `^1.3.8`
-- `@radix-ui/react-scroll-area`: `^1.2.10`
-- `@radix-ui/react-select`: `^2.2.6`
-- `@radix-ui/react-separator`: `^1.1.8`
-- `@radix-ui/react-slider`: `^1.3.6`
-- `@radix-ui/react-slot`: `^1.2.4`
-- `@radix-ui/react-switch`: `^1.2.6`
-- `@radix-ui/react-tabs`: `^1.1.13`
-- `@radix-ui/react-toggle`: `^1.1.10`
-- `@radix-ui/react-toggle-group`: `^1.1.11`
-- `@radix-ui/react-tooltip`: `^1.2.8`
-- `class-variance-authority`: `^0.7.1`
-- `clsx`: `^2.1.1`
-- `cmdk`: `^1.1.1`
-- `embla-carousel-react`: `^8.6.0`
-- `input-otp`: `^1.4.2`
-- `lucide-react`: `^0.575.0`
-- `next-themes`: `^0.4.6`
-- `react`: `^19.2.0`
-- `react-day-picker`: `^9.14.0`
-- `react-dom`: `^19.2.0`
-- `react-hook-form`: `^7.71.2`
-- `react-resizable-panels`: `^4.7.0`
-- `react-router-dom`: `^7.13.1`
-- `recharts`: `^3.7.0`
-- `sonner`: `^2.0.7`
-- `tailwind-merge`: `^3.5.0`
-- `tw-animate-css`: `^1.4.0`
-- `vaul`: `^1.1.2`
+## 2. Extensoes recomendadas (VS Code)
 
-### Desenvolvimento (`devDependencies`)
+1. `ESLint` (dbaeumer.vscode-eslint)
+2. `Prettier - Code formatter` (esbenp.prettier-vscode)
+3. `Tailwind CSS IntelliSense` (bradlc.vscode-tailwindcss)
+4. `EditorConfig for VS Code` (EditorConfig.EditorConfig)
+5. `Path Intellisense` (christian-kohler.path-intellisense)
+6. `Error Lens` (usernamehw.errorlens)
 
-- `@eslint/js`: `^9.39.1`
-- `@tailwindcss/vite`: `^4.2.1`
-- `@types/react`: `^19.2.7`
-- `@types/react-dom`: `^19.2.3`
-- `@vitejs/plugin-react-swc`: `^4.2.2`
-- `eslint`: `^9.39.1`
-- `eslint-plugin-react-hooks`: `^7.0.1`
-- `eslint-plugin-react-refresh`: `^0.4.24`
-- `globals`: `^16.5.0`
-- `tailwindcss`: `^4.2.1`
-- `vite`: `^8.0.0-beta.13`
-
-### Override
-
-- `vite`: `^8.0.0-beta.13`
-
-## Comandos para instalar as dependencias
+## 3. Instalar dependencias
 
 ```bash
-npm install @radix-ui/react-accordion@^1.2.12 @radix-ui/react-alert-dialog@^1.1.15 @radix-ui/react-aspect-ratio@^1.1.8 @radix-ui/react-avatar@^1.1.11 @radix-ui/react-checkbox@^1.3.3 @radix-ui/react-collapsible@^1.1.12 @radix-ui/react-context-menu@^2.2.16 @radix-ui/react-dialog@^1.1.15 @radix-ui/react-dropdown-menu@^2.1.16 @radix-ui/react-hover-card@^1.1.15 @radix-ui/react-label@^2.1.8 @radix-ui/react-menubar@^1.1.16 @radix-ui/react-navigation-menu@^1.2.14 @radix-ui/react-popover@^1.1.15 @radix-ui/react-progress@^1.1.8 @radix-ui/react-radio-group@^1.3.8 @radix-ui/react-scroll-area@^1.2.10 @radix-ui/react-select@^2.2.6 @radix-ui/react-separator@^1.1.8 @radix-ui/react-slider@^1.3.6 @radix-ui/react-slot@^1.2.4 @radix-ui/react-switch@^1.2.6 @radix-ui/react-tabs@^1.1.13 @radix-ui/react-toggle@^1.1.10 @radix-ui/react-toggle-group@^1.1.11 @radix-ui/react-tooltip@^1.2.8 class-variance-authority@^0.7.1 clsx@^2.1.1 cmdk@^1.1.1 embla-carousel-react@^8.6.0 input-otp@^1.4.2 lucide-react@^0.575.0 next-themes@^0.4.6 react@^19.2.0 react-day-picker@^9.14.0 react-dom@^19.2.0 react-hook-form@^7.71.2 react-resizable-panels@^4.7.0 react-router-dom@^7.13.1 recharts@^3.7.0 sonner@^2.0.7 tailwind-merge@^3.5.0 tw-animate-css@^1.4.0 vaul@^1.1.2
-npm install -D @eslint/js@^9.39.1 @tailwindcss/vite@^4.2.1 @types/react@^19.2.7 @types/react-dom@^19.2.3 @vitejs/plugin-react-swc@^4.2.2 eslint@^9.39.1 eslint-plugin-react-hooks@^7.0.1 eslint-plugin-react-refresh@^0.4.24 globals@^16.5.0 tailwindcss@^4.2.1 vite@^8.0.0-beta.13
+cd frontend
+npm install
 ```
 
-## Scripts uteis
+## 4. Variaveis de ambiente
+
+Este frontend funciona sem `.env` por padrao.
+
+Opcionalmente, voce pode criar `frontend/.env` para configurar URL base da API:
+
+```env
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+Se nao definir, as chamadas usam `/api` e o proxy do Vite.
+
+## 5. Rodar em desenvolvimento
+
+```bash
+npm run dev
+```
+
+O app abre em `http://localhost:5173` (porta padrao do Vite).
+
+## 6. Scripts uteis
 
 ```bash
 npm run dev
 npm run build
-npm run lint
 npm run preview
+npm run lint
+npm run test
+npm run test:watch
+npm run test:coverage
 ```
+
+Observacao: hoje ainda nao existem testes de frontend, por isso `npm run test` pode retornar "No test files found" com sucesso.
+
+## 7. Integracao com backend
+
+O arquivo `vite.config.js` ja faz proxy de `/api` para:
+
+```txt
+http://localhost:3000
+```
+
+Entao, para o frontend funcionar completo, o backend precisa estar rodando junto.
+
