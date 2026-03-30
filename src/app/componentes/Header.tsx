@@ -14,6 +14,7 @@ import {
 import {
   clearAuthStorage,
   getAuthorizationHeader,
+  getStoredUserPhoto,
   getStoredUserRole,
   isAuthenticated,
   refreshStoredUserFromApi,
@@ -38,6 +39,7 @@ type NotificationItem = {
 
 const readAuthState = () => isAuthenticated();
 const readUserRole = () => getStoredUserRole();
+const readUserPhoto = () => getStoredUserPhoto();
 
 function parsePositiveInteger(value: unknown) {
   if (typeof value === "number" && Number.isSafeInteger(value) && value > 0) return value;
@@ -71,6 +73,7 @@ function Header() {
   const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(readAuthState);
   const [userRole, setUserRole] = useState<UserRole | null>(readUserRole);
+  const [userPhoto, setUserPhoto] = useState(readUserPhoto);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
@@ -230,6 +233,7 @@ function Header() {
     const syncAuthState = () => {
       setIsLoggedIn(readAuthState());
       setUserRole(readUserRole());
+      setUserPhoto(readUserPhoto());
     };
 
     const syncFromApi = async () => {
@@ -274,6 +278,7 @@ function Header() {
     clearAuthStorage();
     setIsLoggedIn(false);
     setUserRole(null);
+    setUserPhoto("");
     setNotifications([]);
     setUnreadNotifications(0);
     setUserMenuOpen(false);
@@ -423,9 +428,18 @@ function Header() {
                       }}
                       className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
                     >
-                      <span className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center">
-                        <User className="w-4 h-4" />
-                      </span>
+                      {userPhoto ? (
+                        <img
+                          src={userPhoto}
+                          alt="Foto do usuario"
+                          className="w-8 h-8 rounded-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="w-8 h-8 rounded-full bg-secondary/20 text-secondary flex items-center justify-center">
+                          <User className="w-4 h-4" />
+                        </span>
+                      )}
 
                       <span className="hidden md:block text-sm text-gray-700">
                         {userRole === "admin" ? "Admin" : "Usuário"}

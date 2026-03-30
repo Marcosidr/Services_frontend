@@ -16,6 +16,9 @@ function SearchPage() {
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const queryParam = params.get("q")?.trim() ?? "";
   const activeCategoryParam = params.get("cat")?.trim() ?? "";
+  const latitudeParam = params.get("lat")?.trim() ?? "";
+  const longitudeParam = params.get("lng")?.trim() ?? "";
+  const accuracyParam = params.get("accuracy")?.trim() ?? "";
 
   const [searchInput, setSearchInput] = useState(queryParam);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -37,6 +40,12 @@ function SearchPage() {
 
     if (nextCategory) {
       nextParams.set("cat", nextCategory);
+    }
+
+    if (latitudeParam && longitudeParam) {
+      nextParams.set("lat", latitudeParam);
+      nextParams.set("lng", longitudeParam);
+      if (accuracyParam) nextParams.set("accuracy", accuracyParam);
     }
 
     const queryString = nextParams.toString();

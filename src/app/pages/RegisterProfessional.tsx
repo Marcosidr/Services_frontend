@@ -6,6 +6,7 @@ import { formatCpf, isValidCpf, normalizeCpf } from "../utils/cpf";
 import { getEmailValidationError, normalizeEmail } from "../utils/email";
 import { getPasswordValidationError } from "../utils/password";
 import { formatPhone, getPhoneValidationError, normalizePhone } from "../utils/phone";
+import { fileToOptimizedDataUrl } from "../utils/image";
 
 interface Category {
   id: number | string;
@@ -34,6 +35,7 @@ interface RegisterForm {
   priceUnit: string;
   area: string;
   online: boolean;
+  photoUrl: string;
 }
 
 type StepOneField =
@@ -152,7 +154,8 @@ export function RegisterProfessional() {
     price: "",
     priceUnit: "hora",
     area: "10",
-    online: false
+    online: false,
+    photoUrl: ""
   });
 
   useEffect(() => {
@@ -295,6 +298,20 @@ export function RegisterProfessional() {
     }
   };
 
+  const handleProfessionalPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await fileToOptimizedDataUrl(file);
+      update("photoUrl", dataUrl);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Falha ao processar a imagem.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   const validateStep = () => {
     if (step === 1) {
       for (const field of stepOneFields) {
@@ -367,7 +384,8 @@ export function RegisterProfessional() {
         price: form.price,
         priceUnit: form.priceUnit,
         area: form.area,
-        online: form.online
+        online: form.online,
+        photoUrl: form.photoUrl.trim()
       };
 
       const response = await fetch(apiPath("/api/professionals/register"), {
@@ -680,6 +698,32 @@ export function RegisterProfessional() {
                 <option value="10">5 a 10 anos</option>
                 <option value="10+">Mais de 10 anos</option>
               </select>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-gray-500">Foto de perfil profissional (opcional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfessionalPhotoUpload}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                />
+                {form.photoUrl && (
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={form.photoUrl}
+                      alt="Preview da foto profissional"
+                      className="w-14 h-14 rounded-xl object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => update("photoUrl", "")}
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      Remover foto
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <textarea
                 rows={4}

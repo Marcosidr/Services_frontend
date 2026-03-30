@@ -17,6 +17,14 @@ import {
   normalizeProfessional
 } from "../utils/professionals";
 
+type CurrentLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+};
+
+const LOCATION_STORAGE_KEY = "zentry_current_location";
+
 function getCategoryBadge(label: string) {
   const parts = label
     .trim()
@@ -41,6 +49,7 @@ function Home() {
   const [selectedProId, setSelectedProId] = useState<string | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<CurrentLocation | null>(null);
 
   async function loadHomeData(signal?: AbortSignal) {
     setLoadingData(true);
@@ -102,6 +111,25 @@ function Home() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    const rawLocation = window.sessionStorage.getItem(LOCATION_STORAGE_KEY);
+    if (!rawLocation) return;
+
+    try {
+      const parsed = JSON.parse(rawLocation) as CurrentLocation;
+      if (
+        typeof parsed?.latitude === "number" &&
+        typeof parsed?.longitude === "number" &&
+        typeof parsed?.accuracy === "number"
+      ) {
+        setCurrentLocation(parsed);
+        setLocationGranted(true);
+      }
+    } catch {
+      window.sessionStorage.removeItem(LOCATION_STORAGE_KEY);
+    }
+  }, []);
+
   const visibleProfessionals = useMemo(() => {
     if (!activeCategory) return professionals;
     return professionals.filter((professional) =>
@@ -126,6 +154,15 @@ function Home() {
     return countMap;
   }, [professionals]);
 
+  function getCurrentPosition() {
+    return new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000
+      });
+    });
+  }
+
   async function handleLocationRequest() {
     setMenuMessage(null);
     setLocationLoading(true);
@@ -136,14 +173,27 @@ function Home() {
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
-        () => setLocationGranted(true),
-        () => {
-          setMenuMessage("Nao foi possivel obter sua localizacao.");
-          setLocationGranted(false);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
+      const position = await getCurrentPosition();
+      const nextLocation = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      };
+
+      setCurrentLocation(nextLocation);
+      setLocationGranted(true);
+      window.sessionStorage.setItem(
+        LOCATION_STORAGE_KEY,
+        JSON.stringify(nextLocation)
       );
+      setMenuMessage(
+        `Localizacao atual detectada (precisao aproximada: ${Math.round(
+          nextLocation.accuracy
+        )}m).`
+      );
+    } catch {
+      setMenuMessage("Nao foi possivel obter sua localizacao.");
+      setLocationGranted(false);
     } finally {
       setLocationLoading(false);
     }
@@ -158,7 +208,16 @@ function Home() {
       return;
     }
 
-    navigate(`/profissionais?q=${encodeURIComponent(query)}`);
+    const params = new URLSearchParams();
+    params.set("q", query);
+
+    if (currentLocation) {
+      params.set("lat", String(currentLocation.latitude));
+      params.set("lng", String(currentLocation.longitude));
+      params.set("accuracy", String(Math.round(currentLocation.accuracy)));
+    }
+
+    navigate(`/profissionais?${params.toString()}`);
   }
 
   function handleCategory(categoryId: string) {
@@ -209,7 +268,12 @@ function Home() {
             ) : (
               <div className="flex items-center gap-2 text-green-200 mb-5">
                 <MapPin className="w-4 h-4" />
-                <span className="text-sm">Localizacao autorizada</span>
+                <span className="text-sm">
+                  Localizacao autorizada
+                  {currentLocation
+                    ? ` (${Math.round(currentLocation.accuracy)}m de precisao)`
+                    : ""}
+                </span>
               </div>
             )}
 

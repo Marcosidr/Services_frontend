@@ -6,6 +6,7 @@ import { formatCpf, isValidCpf, normalizeCpf } from "../utils/cpf";
 import { getEmailValidationError, normalizeEmail } from "../utils/email";
 import { getPasswordValidationError } from "../utils/password";
 import { formatPhone, getPhoneValidationError, normalizePhone } from "../utils/phone";
+import { fileToOptimizedDataUrl } from "../utils/image";
 
 type AuthTab = "login" | "register";
 type FormField =
@@ -21,6 +22,8 @@ type FormField =
   | "cidade"
   | "uf"
   | "estado"
+  | "photoUrl"
+  | "bio"
   | "password"
   | "confirmPassword";
 
@@ -37,6 +40,8 @@ type AuthForm = {
   cidade: string;
   uf: string;
   estado: string;
+  photoUrl: string;
+  bio: string;
   password: string;
   confirmPassword: string;
 };
@@ -50,6 +55,8 @@ interface AuthResponse {
     id: string;
     name: string;
     email: string;
+    photo?: string | null;
+    bio?: string | null;
     phone?: string | null;
     cep?: string | null;
     endereco?: string | null;
@@ -74,6 +81,8 @@ const registerFieldOrder: FormField[] = [
   "bairro",
   "cidade",
   "uf",
+  "photoUrl",
+  "bio",
   "password",
   "confirmPassword"
 ];
@@ -180,6 +189,8 @@ function Login() {
     cidade: "",
     uf: "",
     estado: "",
+    photoUrl: "",
+    bio: "",
     password: "",
     confirmPassword: ""
   });
@@ -312,6 +323,21 @@ function Login() {
     }
   };
 
+  const handleProfilePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await fileToOptimizedDataUrl(file);
+      updateField("photoUrl", dataUrl);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Falha ao processar a imagem.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     resetMessages();
@@ -354,6 +380,8 @@ function Login() {
               cidade: form.cidade.trim(),
               uf: form.uf.trim().toUpperCase(),
               estado: form.estado.trim(),
+              photoUrl: form.photoUrl.trim(),
+              bio: form.bio.trim(),
               password: form.password
             };
 
@@ -708,6 +736,48 @@ function Login() {
                   />
                 </div>
               </div>
+            )}
+
+            {tab === "register" && (
+              <>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block">Foto de perfil (opcional)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfilePhotoUpload}
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none transition-colors focus:border-primary"
+                  />
+                  {form.photoUrl && (
+                    <div className="mt-2 flex items-center gap-3">
+                      <img
+                        src={form.photoUrl}
+                        alt="Preview da foto"
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateField("photoUrl", "")}
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        Remover foto
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 mb-1.5 block">Bio (opcional)</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Conte um pouco sobre voce..."
+                    value={form.bio}
+                    onChange={(e) => updateField("bio", e.target.value)}
+                    onBlur={() => touchField("bio")}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none transition-colors focus:border-primary resize-none"
+                  />
+                </div>
+              </>
             )}
 
             <div>

@@ -19,6 +19,7 @@ import { getAuthorizationHeader, isAuthenticated } from "../utils/auth";
 interface Review {
   id: string | number;
   user: string;
+  userPhoto?: string;
   rating: number;
   date: string;
   text: string;
@@ -385,10 +386,19 @@ interface Professional {
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
                           <div
-                            className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs text-blue-600"
+                            className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs text-blue-600 overflow-hidden"
                             style={{ fontWeight: 600 }}
                           >
-                            {r.user?.[0] ?? "U"}
+                            {r.userPhoto ? (
+                              <img
+                                src={r.userPhoto}
+                                alt={r.user}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              r.user?.[0] ?? "U"
+                            )}
                           </div>
 
                           <span

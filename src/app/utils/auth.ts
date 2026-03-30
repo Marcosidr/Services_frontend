@@ -1,6 +1,10 @@
 export type UserRole = "user" | "professional" | "admin";
 
 type StoredUser = {
+  id?: number | string;
+  name?: string;
+  email?: string;
+  photo?: string;
   role?: string;
   [key: string]: unknown;
 };
@@ -33,6 +37,11 @@ export function getStoredUser() {
   } catch {
     return null;
   }
+}
+
+export function getStoredUserPhoto() {
+  const photo = getStoredUser()?.photo;
+  return typeof photo === "string" ? photo.trim() : "";
 }
 
 export function getStoredUserRole(): UserRole | null {

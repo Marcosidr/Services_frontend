@@ -14,15 +14,28 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { getAuthorizationHeader } from "../utils/auth";
+import { fileToOptimizedDataUrl } from "../utils/image";
 
-type Tab = "pedidos" | "chat" | "avaliacoes" | "pagamento";
+type Tab = "pedidos" | "chat" | "avaliacoes" | "pagamento" | "perfil";
 
-type OrderStatus = "concluído" | "em andamento" | "cancelado" | "aguardando";
+type OrderStatus = "concluido" | "em andamento" | "cancelado" | "aguardando";
 
 interface DashboardUser {
   id: string;
   name: string;
   email?: string;
+  phone?: string | null;
+  cep?: string | null;
+  endereco?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+  estado?: string | null;
+  photo?: string;
+  bio?: string | null;
+  role?: "user" | "professional" | "admin";
 }
 
 interface DashboardMessage {
@@ -76,7 +89,7 @@ interface PaymentHistoryItem {
 
 interface DashboardResponse {
   user: DashboardUser | null;
-  orders: DashboardOrder[];
+  orders: RawDashboardOrder[];
   messages: DashboardMessage[];
   paymentMethods: PaymentMethod[];
   paymentHistory: PaymentHistoryItem[];
@@ -103,6 +116,7 @@ type ConversationSummary = {
   conversationId: string;
   otherUserId: number;
   otherUserName: string;
+  otherUserPhoto?: string;
   lastMessage: {
     id: string;
     senderId: number;
@@ -118,11 +132,47 @@ type ConversationsResponse = {
   items?: ConversationSummary[];
 };
 
+type RawDashboardOrder = Omit<DashboardOrder, "status"> & {
+  status?: string;
+};
+
+type ProfileForm = {
+  name: string;
+  phone: string;
+  cep: string;
+  endereco: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+  estado: string;
+  photoUrl: string;
+  bio: string;
+  professionalDescription: string;
+  professionalPhotoUrl: string;
+};
+
 function parsePositiveInteger(value: string | null) {
   if (!value || !/^\d+$/.test(value)) return null;
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) return null;
   return parsed;
+}
+
+function normalizeOrderStatus(status: unknown): OrderStatus {
+  if (typeof status !== "string") return "aguardando";
+
+  const normalized = status
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (normalized === "concluido") return "concluido";
+  if (normalized === "em andamento") return "em andamento";
+  if (normalized === "cancelado") return "cancelado";
+  return "aguardando";
 }
 
 function normalizeChatMessage(message: ApiChatMessage): DashboardMessage {
@@ -153,11 +203,11 @@ const statusConfig: Record<
     label: string;
   }
 > = {
-  concluído: {
+  concluido: {
     icon: CheckCircle,
     color: "text-green-600",
     bg: "bg-green-50",
-    label: "Concluído",
+    label: "Concluido",
   },
   "em andamento": {
     icon: Clock,
@@ -179,7 +229,7 @@ const statusConfig: Record<
   },
 };
 
- function UserDashboard() {
+function UserDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -198,6 +248,24 @@ const statusConfig: Record<
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [ratingComment, setRatingComment] = useState("");
   const [ratingSuccess, setRatingSuccess] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileForm, setProfileForm] = useState<ProfileForm>({
+    name: "",
+    phone: "",
+    cep: "",
+    endereco: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    uf: "",
+    estado: "",
+    photoUrl: "",
+    bio: "",
+    professionalDescription: "",
+    professionalPhotoUrl: ""
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [loadingConversations, setLoadingConversations] = useState(false);
@@ -210,6 +278,7 @@ const statusConfig: Record<
     { id: "chat", label: "Chat", icon: MessageCircle },
     { id: "avaliacoes", label: "Avaliações", icon: Star },
     { id: "pagamento", label: "Pagamento", icon: CreditCard },
+    { id: "perfil", label: "Perfil", icon: User },
   ];
 
   useEffect(() => {
@@ -229,15 +298,37 @@ const statusConfig: Record<
         }
 
         const data: DashboardResponse = await response.json();
+        const normalizedOrders = Array.isArray(data.orders)
+          ? data.orders.map((order) => ({
+              ...order,
+              status: normalizeOrderStatus(order.status)
+            }))
+          : [];
+        const nextUser = data.user ?? null;
 
-        setUser(data.user ?? null);
-        setOrders(Array.isArray(data.orders) ? data.orders : []);
+        setUser(nextUser);
+        setOrders(normalizedOrders);
         setPaymentMethods(
           Array.isArray(data.paymentMethods) ? data.paymentMethods : []
         );
         setPaymentHistory(
           Array.isArray(data.paymentHistory) ? data.paymentHistory : []
         );
+        setProfileForm((prev) => ({
+          ...prev,
+          name: nextUser?.name ?? "",
+          phone: nextUser?.phone ?? "",
+          cep: nextUser?.cep ?? "",
+          endereco: nextUser?.endereco ?? "",
+          numero: nextUser?.numero ?? "",
+          complemento: nextUser?.complemento ?? "",
+          bairro: nextUser?.bairro ?? "",
+          cidade: nextUser?.cidade ?? "",
+          uf: nextUser?.uf ?? "",
+          estado: nextUser?.estado ?? "",
+          photoUrl: nextUser?.photo ?? "",
+          bio: typeof nextUser?.bio === "string" ? nextUser.bio : ""
+        }));
       } catch (err) {
         console.error(err);
         setError("Erro ao carregar os dados do painel.");
@@ -249,8 +340,41 @@ const statusConfig: Record<
     loadDashboard();
   }, []);
 
+  useEffect(() => {
+    async function loadMyProfessionalProfile() {
+      if (user?.role !== "professional") return;
+
+      try {
+        const response = await fetch("/api/professionals/me", {
+          headers: {
+            ...getAuthorizationHeader()
+          }
+        });
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as {
+          description?: string;
+          photo?: string;
+        };
+
+        setProfileForm((prev) => ({
+          ...prev,
+          professionalDescription:
+            typeof data.description === "string" ? data.description : "",
+          professionalPhotoUrl:
+            typeof data.photo === "string" ? data.photo : prev.professionalPhotoUrl
+        }));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    void loadMyProfessionalProfile();
+  }, [user?.role]);
+
   const completedOrders = useMemo(
-    () => orders.filter((order) => order.status === "concluído"),
+    () => orders.filter((order) => order.status === "concluido"),
     [orders]
   );
 
@@ -282,7 +406,8 @@ const statusConfig: Record<
 
   const loadConversations = async (
     preferredUserId: number | null = null,
-    preferredUserName = ""
+    preferredUserName = "",
+    preferredUserPhoto = ""
   ) => {
     try {
       setLoadingConversations(true);
@@ -317,10 +442,16 @@ const statusConfig: Record<
         selectedConversation?.otherUserName ||
         activeChatProfessional?.name ||
         `Conversa #${nextUserId}`;
+      const selectedUserPhoto =
+        preferredUserPhoto ||
+        selectedConversation?.otherUserPhoto ||
+        activeChatProfessional?.photo ||
+        "";
 
       setActiveChatProfessional({
         id: String(nextUserId),
         name: selectedUserName,
+        photo: selectedUserPhoto,
         categoryLabel: "Mensagem direta",
         online: false
       });
@@ -333,10 +464,15 @@ const statusConfig: Record<
     }
   };
 
-  const openConversation = async (withUserId: number, withUserName = "") => {
+  const openConversation = async (
+    withUserId: number,
+    withUserName = "",
+    withUserPhoto = ""
+  ) => {
     setActiveChatProfessional({
       id: String(withUserId),
       name: withUserName || `Conversa #${withUserId}`,
+      photo: withUserPhoto,
       categoryLabel: "Mensagem direta",
       online: false
     });
@@ -413,6 +549,7 @@ const statusConfig: Record<
 
   const submitRating = async (orderId: string) => {
     const selectedRating = ratings[orderId];
+    const order = orders.find((currentOrder) => currentOrder.id === orderId);
 
     if (!selectedRating) return;
 
@@ -428,6 +565,7 @@ const statusConfig: Record<
         body: JSON.stringify({
           rating: selectedRating,
           comment: ratingComment,
+          professionalId: order?.professionalId ?? "",
         }),
       });
 
@@ -480,13 +618,117 @@ const statusConfig: Record<
     }
   };
 
+  const updateProfileField = <K extends keyof ProfileForm>(field: K, value: ProfileForm[K]) => {
+    setProfileForm((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleUserPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await fileToOptimizedDataUrl(file);
+      updateProfileField("photoUrl", dataUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao processar a imagem.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleProfessionalPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await fileToOptimizedDataUrl(file);
+      updateProfileField("professionalPhotoUrl", dataUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao processar a imagem.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const saveProfile = async () => {
+    try {
+      setSavingProfile(true);
+      setError("");
+
+      const response = await fetch("/api/auth/me/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthorizationHeader()
+        },
+        body: JSON.stringify({
+          name: profileForm.name,
+          phone: profileForm.phone,
+          cep: profileForm.cep,
+          endereco: profileForm.endereco,
+          numero: profileForm.numero,
+          complemento: profileForm.complemento,
+          bairro: profileForm.bairro,
+          cidade: profileForm.cidade,
+          uf: profileForm.uf,
+          estado: profileForm.estado,
+          photoUrl: profileForm.photoUrl,
+          bio: profileForm.bio
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Nao foi possivel atualizar o perfil.");
+      }
+
+      const userData = (await response.json()) as {
+        user?: DashboardUser;
+      };
+
+      if (userData.user) {
+        setUser(userData.user);
+        localStorage.setItem("user", JSON.stringify(userData.user));
+      }
+
+      if (user?.role === "professional") {
+        const professionalResponse = await fetch("/api/professionals/me", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthorizationHeader()
+          },
+          body: JSON.stringify({
+            description: profileForm.professionalDescription,
+            photoUrl: profileForm.professionalPhotoUrl || profileForm.photoUrl
+          })
+        });
+
+        if (!professionalResponse.ok) {
+          throw new Error("Perfil do profissional nao foi atualizado.");
+        }
+      }
+
+      setProfileSuccess(true);
+      setTimeout(() => setProfileSuccess(false), 2000);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Erro ao salvar perfil.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const showChatFromOrder = (order: DashboardOrder) => {
     const professionalId = parsePositiveInteger(order.professionalId);
     if (!professionalId) return;
 
     const professionalName = order.professional?.name ?? order.professionalName;
-    void openConversation(professionalId, professionalName);
-    void loadConversations(professionalId, professionalName);
+    const professionalPhoto = order.professional?.photo ?? "";
+    void openConversation(professionalId, professionalName, professionalPhoto);
+    void loadConversations(professionalId, professionalName, professionalPhoto);
   };
 
   useEffect(() => {
@@ -544,9 +786,18 @@ const statusConfig: Record<
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-5">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-              <User className="w-6 h-6 text-blue-600" />
-            </div>
+            {user?.photo ? (
+              <img
+                src={user.photo}
+                alt={user.name}
+                className="w-12 h-12 rounded-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <User className="w-6 h-6 text-blue-600" />
+              </div>
+            )}
 
             <div>
               <h1 className="text-gray-900">
@@ -672,7 +923,7 @@ const statusConfig: Record<
                       </div>
                     </div>
 
-                    {order.status === "concluído" && !order.rating && (
+                    {order.status === "concluido" && !order.rating && (
                       <button
                         onClick={() => openRatingModal(order.id)}
                         className="mt-3 w-full flex items-center justify-center gap-2 text-sm text-yellow-600 bg-yellow-50 hover:bg-yellow-100 py-2 rounded-lg transition-colors"
@@ -761,7 +1012,8 @@ const statusConfig: Record<
                           onClick={() =>
                             void openConversation(
                               conversation.otherUserId,
-                              conversation.otherUserName
+                              conversation.otherUserName,
+                              conversation.otherUserPhoto ?? ""
                             )
                           }
                           className={`w-full text-left px-4 py-3 border-b border-gray-100 transition-colors ${
@@ -769,13 +1021,22 @@ const statusConfig: Record<
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <div
-                              className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                                isActive ? "bg-blue-100 text-blue-600" : "bg-gray-200 text-gray-500"
-                              }`}
-                            >
-                              <User className="w-4 h-4" />
-                            </div>
+                            {conversation.otherUserPhoto ? (
+                              <img
+                                src={conversation.otherUserPhoto}
+                                alt={conversation.otherUserName}
+                                className="w-9 h-9 rounded-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div
+                                className={`w-9 h-9 rounded-full flex items-center justify-center ${
+                                  isActive ? "bg-blue-100 text-blue-600" : "bg-gray-200 text-gray-500"
+                                }`}
+                              >
+                                <User className="w-4 h-4" />
+                              </div>
+                            )}
 
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
@@ -817,9 +1078,18 @@ const statusConfig: Record<
 
               <section className="flex flex-col min-h-[34rem]">
                 <div className="flex items-center gap-3 p-4 border-b border-gray-100 bg-blue-600 text-white">
-                  <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
-                    <User className="w-4 h-4" />
-                  </div>
+                  {activeChatProfessional?.photo ? (
+                    <img
+                      src={activeChatProfessional.photo}
+                      alt={activeChatProfessional.name}
+                      className="w-9 h-9 rounded-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
+                      <User className="w-4 h-4" />
+                    </div>
+                  )}
 
                   <div>
                     <p style={{ fontWeight: 600 }}>
@@ -907,7 +1177,7 @@ const statusConfig: Record<
 
               {completedOrders.length === 0 ? (
                 <p className="text-sm text-gray-500">
-                  Você ainda não possui serviços concluídos para avaliar.
+                  Você ainda não possui serviços concluidos para avaliar.
                 </p>
               ) : (
                 completedOrders.map((order) => (
@@ -965,6 +1235,161 @@ const statusConfig: Record<
                     )}
                   </div>
                 ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "perfil" && (
+          <div className="flex flex-col gap-4">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h3 className="text-gray-900 mb-1">Editar perfil</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Atualize foto, bio e endereco do seu perfil.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input
+                  value={profileForm.name}
+                  onChange={(event) => updateProfileField("name", event.target.value)}
+                  placeholder="Nome"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+                <input
+                  value={profileForm.phone}
+                  onChange={(event) => updateProfileField("phone", event.target.value)}
+                  placeholder="Telefone"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+                <div className="md:col-span-2">
+                  <p className="text-xs text-gray-500 mb-1.5">Foto de perfil</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUserPhotoUpload}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                  />
+                  {profileForm.photoUrl && (
+                    <div className="mt-2 flex items-center gap-3">
+                      <img
+                        src={profileForm.photoUrl}
+                        alt="Preview da foto de perfil"
+                        className="w-14 h-14 rounded-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updateProfileField("photoUrl", "")}
+                        className="text-xs text-red-600 hover:underline"
+                      >
+                        Remover foto
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <textarea
+                  value={profileForm.bio}
+                  onChange={(event) => updateProfileField("bio", event.target.value)}
+                  placeholder="Sua bio (estilo LinkedIn)"
+                  rows={3}
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm md:col-span-2 resize-none"
+                />
+                <input
+                  value={profileForm.cep}
+                  onChange={(event) => updateProfileField("cep", event.target.value)}
+                  placeholder="CEP"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+                <input
+                  value={profileForm.endereco}
+                  onChange={(event) => updateProfileField("endereco", event.target.value)}
+                  placeholder="Endereco"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+                <input
+                  value={profileForm.numero}
+                  onChange={(event) => updateProfileField("numero", event.target.value)}
+                  placeholder="Numero"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+                <input
+                  value={profileForm.complemento}
+                  onChange={(event) => updateProfileField("complemento", event.target.value)}
+                  placeholder="Complemento"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+                <input
+                  value={profileForm.bairro}
+                  onChange={(event) => updateProfileField("bairro", event.target.value)}
+                  placeholder="Bairro"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+                <input
+                  value={profileForm.cidade}
+                  onChange={(event) => updateProfileField("cidade", event.target.value)}
+                  placeholder="Cidade"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+                <input
+                  value={profileForm.uf}
+                  onChange={(event) => updateProfileField("uf", event.target.value)}
+                  placeholder="UF"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+                <input
+                  value={profileForm.estado}
+                  onChange={(event) => updateProfileField("estado", event.target.value)}
+                  placeholder="Estado"
+                  className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                />
+              </div>
+
+              {user?.role === "professional" && (
+                <div className="mt-4 grid grid-cols-1 gap-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1.5">Foto profissional</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfessionalPhotoUpload}
+                      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm"
+                    />
+                    {profileForm.professionalPhotoUrl && (
+                      <div className="mt-2 flex items-center gap-3">
+                        <img
+                          src={profileForm.professionalPhotoUrl}
+                          alt="Preview da foto profissional"
+                          className="w-14 h-14 rounded-xl object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateProfileField("professionalPhotoUrl", "")}
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Remover foto
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <textarea
+                    value={profileForm.professionalDescription}
+                    onChange={(event) => updateProfileField("professionalDescription", event.target.value)}
+                    placeholder="Descricao profissional / bio"
+                    rows={4}
+                    className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm resize-none"
+                  />
+                </div>
+              )}
+
+              <button
+                onClick={saveProfile}
+                disabled={savingProfile}
+                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm disabled:opacity-60"
+              >
+                {savingProfile ? "Salvando..." : "Salvar perfil"}
+              </button>
+
+              {profileSuccess && (
+                <p className="text-sm text-green-600 mt-3">Perfil atualizado com sucesso.</p>
               )}
             </div>
           </div>
@@ -1122,3 +1547,8 @@ const statusConfig: Record<
   );
 }
 export default UserDashboard;
+
+
+
+
+
