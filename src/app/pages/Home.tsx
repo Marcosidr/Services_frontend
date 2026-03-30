@@ -187,7 +187,7 @@ function Home() {
         JSON.stringify(nextLocation)
       );
       setMenuMessage(
-        `Localizacao atual detectada (precisao aproximada: ${Math.round(
+        `Localizacao atual detectada ${Math.round(
           nextLocation.accuracy
         )}m).`
       );

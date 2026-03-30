@@ -58,6 +58,16 @@ function getChatTargetFromNotification(notification: NotificationItem) {
   return parsePositiveInteger(senderId);
 }
 
+function getOrderTargetFromNotification(notification: NotificationItem) {
+  if (!notification.metadata || typeof notification.metadata !== "object") return null;
+
+  const metadata = notification.metadata as Record<string, unknown>;
+  if (metadata.target !== "orders") return null;
+  if (typeof metadata.orderId !== "string") return null;
+  const orderId = metadata.orderId.trim();
+  return orderId || null;
+}
+
 function extractSenderName(notificationMessage: string) {
   const suffix = " enviou uma mensagem";
   if (!notificationMessage.endsWith(suffix)) return "";
@@ -384,6 +394,17 @@ function Header() {
                                 onClick={() => {
                                   if (!notification.isRead) {
                                     void markNotificationAsRead(notification.id);
+                                  }
+
+                                  const orderTargetId = getOrderTargetFromNotification(notification);
+                                  if (orderTargetId) {
+                                    const query = new URLSearchParams({
+                                      tab: "pedidos",
+                                      orderId: orderTargetId
+                                    });
+                                    navigate(`/painel?${query.toString()}`);
+                                    setNotificationMenuOpen(false);
+                                    return;
                                   }
 
                                   const chatTargetId = getChatTargetFromNotification(notification);

@@ -78,6 +78,9 @@ interface Professional {
   const [bookingType, setBookingType] = useState<"imediato" | "agendar">("imediato");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const [bookingDescription, setBookingDescription] = useState("");
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [bookingError, setBookingError] = useState("");
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
   const [pro, setPro] = useState<Professional | null>(null);
@@ -206,16 +209,53 @@ interface Professional {
     void loadConversation();
   }, [showChat, pro?.id]);
 
-  const handleBooking = () => {
-    setBookingSuccess(true);
+  const handleBooking = async () => {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
 
-    setTimeout(() => {
-      setShowBooking(false);
-      setBookingSuccess(false);
-      setSelectedDate("");
-      setSelectedTime("");
-      setBookingType("imediato");
-    }, 2500);
+    if (!pro?.id) return;
+
+    try {
+      setBookingSubmitting(true);
+      setBookingError("");
+
+      const response = await fetch("/api/dashboard/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthorizationHeader()
+        },
+        body: JSON.stringify({
+          professionalId: Number(pro.id),
+          description: bookingDescription,
+          scheduleDate: bookingType === "agendar" ? selectedDate : "",
+          scheduleTime: bookingType === "agendar" ? selectedTime : ""
+        })
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(payload?.message || "Nao foi possivel enviar o pedido.");
+      }
+
+      setBookingSuccess(true);
+
+      setTimeout(() => {
+        setShowBooking(false);
+        setBookingSuccess(false);
+        setSelectedDate("");
+        setSelectedTime("");
+        setBookingType("imediato");
+        setBookingDescription("");
+      }, 2500);
+    } catch (err) {
+      console.error(err);
+      setBookingError(err instanceof Error ? err.message : "Falha ao enviar pedido.");
+    } finally {
+      setBookingSubmitting(false);
+    }
   };
 
   const stars = Array.from({ length: 5 }, (_, i) => i + 1);
@@ -468,13 +508,9 @@ interface Professional {
                 Contratar Agora
               </button>
 
-              <button
-                onClick={() => setShowChat(true)}
-                className="w-full border border-blue-200 text-blue-600 hover:bg-blue-50 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-              >
-                <MessageCircle className="w-4 h-4" />
-                Enviar mensagem
-              </button>
+              <div className="w-full border border-slate-200 bg-slate-50 text-slate-600 py-3 rounded-xl text-sm text-center">
+                Chat liberado somente apos o profissional aceitar o pedido.
+              </div>
 
               <a
                 href={`tel:${pro.phone}`}
@@ -688,6 +724,8 @@ interface Professional {
                     <textarea
                       rows={3}
                       placeholder="Descreva o que precisa..."
+                      value={bookingDescription}
+                      onChange={(event) => setBookingDescription(event.target.value)}
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-400 resize-none"
                     />
                   </div>
@@ -720,11 +758,17 @@ interface Professional {
                   </div>
 
                   <button
-                    onClick={handleBooking}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl transition-colors"
+                    onClick={() => {
+                      void handleBooking();
+                    }}
+                    disabled={bookingSubmitting}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl transition-colors disabled:opacity-60"
                   >
-                    Confirmar Pedido
+                    {bookingSubmitting ? "Enviando pedido..." : "Confirmar Pedido"}
                   </button>
+                  {bookingError && (
+                    <p className="mt-2 text-xs text-red-600">{bookingError}</p>
+                  )}
                 </div>
               </>
             )}
