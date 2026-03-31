@@ -11,15 +11,8 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
-import {
-  clearAuthStorage,
-  getAuthorizationHeader,
-  getStoredUserPhoto,
-  getStoredUserRole,
-  isAuthenticated,
-  refreshStoredUserFromApi,
-  type UserRole,
-} from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
+import { getAuthorizationHeader } from "../utils/auth";
 
 const navItems = [
   { to: "/", label: "Início" },
@@ -36,10 +29,6 @@ type NotificationItem = {
   createdAt: string;
   metadata?: Record<string, unknown> | null;
 };
-
-const readAuthState = () => isAuthenticated();
-const readUserRole = () => getStoredUserRole();
-const readUserPhoto = () => getStoredUserPhoto();
 
 function parsePositiveInteger(value: unknown) {
   if (typeof value === "number" && Number.isSafeInteger(value) && value > 0) return value;
@@ -78,12 +67,10 @@ function extractSenderName(notificationMessage: string) {
 function Header() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated, userRole, userPhoto, logout, refreshUser } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(readAuthState);
-  const [userRole, setUserRole] = useState<UserRole | null>(readUserRole);
-  const [userPhoto, setUserPhoto] = useState(readUserPhoto);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
@@ -118,7 +105,7 @@ function Header() {
   }, []);
 
   async function loadNotifications(limit = 6) {
-    if (!isAuthenticated()) {
+    if (!isAuthenticated) {
       setNotifications([]);
       setUnreadNotifications(0);
       return;
@@ -240,40 +227,26 @@ function Header() {
   }
 
   useEffect(() => {
-    const syncAuthState = () => {
-      setIsLoggedIn(readAuthState());
-      setUserRole(readUserRole());
-      setUserPhoto(readUserPhoto());
-    };
-
     const syncFromApi = async () => {
-      syncAuthState();
-      if (!isAuthenticated()) {
+      if (!isAuthenticated) {
         setNotifications([]);
         setUnreadNotifications(0);
         return;
       }
 
       try {
-        await refreshStoredUserFromApi();
+        await refreshUser();
       } catch {
         // Mantem o estado local quando houver falha de rede.
       }
-
-      syncAuthState();
       await loadNotifications();
     };
 
     void syncFromApi();
-    window.addEventListener("storage", syncAuthState);
-
-    return () => {
-      window.removeEventListener("storage", syncAuthState);
-    };
-  }, [pathname]);
+  }, [isAuthenticated, pathname, refreshUser]);
 
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isAuthenticated) return;
 
     const intervalId = window.setInterval(() => {
       void loadNotifications();
@@ -282,13 +255,10 @@ function Header() {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [isLoggedIn]);
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
-    clearAuthStorage();
-    setIsLoggedIn(false);
-    setUserRole(null);
-    setUserPhoto("");
+    logout();
     setNotifications([]);
     setUnreadNotifications(0);
     setUserMenuOpen(false);
@@ -332,7 +302,7 @@ function Header() {
             </nav>
 
             <div className="flex items-center gap-2 shrink-0">
-              {isLoggedIn ? (
+              {isAuthenticated ? (
                 <>
                   <div className="relative" ref={notificationMenuRef}>
                     <button

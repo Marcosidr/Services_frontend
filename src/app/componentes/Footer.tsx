@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   MapPin,
@@ -10,11 +10,7 @@ import {
   ShieldCheck,
   Clock3,
 } from "lucide-react";
-import {
-  isStoredUserAdmin,
-  isAuthenticated,
-  refreshStoredUserFromApi
-} from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
 const baseServiceLinks = [
   { to: "/profissionais", label: "Buscar profissionais" },
@@ -30,33 +26,21 @@ const companyLinks = [
 ];
 
 function Footer() {
-  const [isAdmin, setIsAdmin] = useState(() => isStoredUserAdmin());
+  const { isAdmin, isAuthenticated, refreshUser } = useAuth();
 
   useEffect(() => {
-    const syncRole = () => {
-      setIsAdmin(isStoredUserAdmin());
-    };
-
     const syncFromApi = async () => {
-      syncRole();
-      if (!isAuthenticated()) return;
+      if (!isAuthenticated) return;
 
       try {
-        await refreshStoredUserFromApi();
+        await refreshUser();
       } catch {
         // Mantem o papel atual quando houver falha de rede.
       }
-
-      syncRole();
     };
 
     void syncFromApi();
-    window.addEventListener("storage", syncRole);
-
-    return () => {
-      window.removeEventListener("storage", syncRole);
-    };
-  }, []);
+  }, [isAuthenticated, refreshUser]);
 
   const serviceLinks = isAdmin ? [...baseServiceLinks, adminServiceLink] : baseServiceLinks;
 

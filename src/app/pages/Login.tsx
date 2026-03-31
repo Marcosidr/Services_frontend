@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, MapPin, Phone, AlertCircle, CheckCircle } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import { formatCep, fetchViaCep, normalizeCep, cepValido } from "../utils/cep";
 import { formatCpf, isValidCpf, normalizeCpf } from "../utils/cpf";
 import { getEmailValidationError, normalizeEmail } from "../utils/email";
@@ -166,6 +167,7 @@ function getFirstValidationError(errors: FormErrors, tab: AuthTab) {
 
 function Login() {
   const navigate = useNavigate();
+  const { setAuth } = useAuth();
 
   const [tab, setTab] = useState<AuthTab>("login");
   const [showPass, setShowPass] = useState(false);
@@ -410,12 +412,11 @@ function Login() {
         );
       }
 
-      if (data?.token) {
-        localStorage.setItem("token", data.token);
-      }
-
-      if (data?.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+      const nextAuthPayload: { token?: string | null; user?: AuthResponse["user"] | null } = {};
+      if (data?.token) nextAuthPayload.token = data.token;
+      if (data?.user) nextAuthPayload.user = data.user;
+      if (Object.keys(nextAuthPayload).length > 0) {
+        setAuth(nextAuthPayload);
       }
 
       setSuccessMessage(tab === "login" ? "Login realizado com sucesso!" : "Conta criada com sucesso!");

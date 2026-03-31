@@ -1,40 +1,32 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import {
-  isAuthenticated,
-  isStoredUserAdmin,
-  refreshStoredUserFromApi
-} from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
 type RequireAdminProps = {
   children: ReactNode;
 };
 
 function RequireAdmin({ children }: RequireAdminProps) {
+  const { isAuthenticated, isAdmin, refreshUser } = useAuth();
   const [checkingAccess, setCheckingAccess] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     const checkAccess = async () => {
-      if (!isAuthenticated()) {
+      if (!isAuthenticated) {
         if (!mounted) return;
-        setIsAdmin(false);
         setCheckingAccess(false);
         return;
       }
 
-      setIsAdmin(isStoredUserAdmin());
-
       try {
-        await refreshStoredUserFromApi();
+        await refreshUser();
       } catch {
         // Se a rede falhar, mantem o dado local.
       }
 
       if (!mounted) return;
-      setIsAdmin(isStoredUserAdmin());
       setCheckingAccess(false);
     };
 
@@ -43,9 +35,9 @@ function RequireAdmin({ children }: RequireAdminProps) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isAuthenticated, refreshUser]);
 
-  if (!isAuthenticated()) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 

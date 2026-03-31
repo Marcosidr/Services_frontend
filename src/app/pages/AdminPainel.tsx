@@ -1048,7 +1048,9 @@ function AdminPanel() {
                   <option value="admin">admin</option>
                 </select>
                 <div className="md:col-span-2 xl:col-span-3 flex items-center justify-between gap-3">
-                  <p className="text-xs text-slate-500">Regra: email e CPF sao bloqueados na edicao.</p>
+                  <p className="text-xs text-slate-500">
+                    Regra: email e CPF sao bloqueados na edicao. Cadastro profissional deve usar o fluxo de profissionais.
+                  </p>
                   <button type="submit" disabled={userCreateBusy} className="px-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">
                     {userCreateBusy ? "Criando..." : "Criar usuario"}
                   </button>

@@ -1,6 +1,6 @@
 export type UserRole = "user" | "professional" | "admin";
 
-type StoredUser = {
+export type StoredUser = {
   id?: number | string;
   name?: string;
   email?: string;
@@ -13,14 +13,25 @@ type MeResponse = {
   user?: StoredUser;
 };
 
+export const AUTH_STORAGE_EVENT = "auth:changed";
+
+function emitAuthStorageChange() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(AUTH_STORAGE_EVENT));
+}
+
 export function isAuthenticated() {
   if (typeof window === "undefined") return false;
   return Boolean(window.localStorage.getItem("token"));
 }
 
+export function getStoredToken() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem("token");
+}
+
 export function getAuthorizationHeader(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  const token = window.localStorage.getItem("token");
+  const token = getStoredToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -60,6 +71,27 @@ export function clearAuthStorage() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem("token");
   window.localStorage.removeItem("user");
+  emitAuthStorageChange();
+}
+
+export function setStoredToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  if (token && token.trim()) {
+    window.localStorage.setItem("token", token);
+  } else {
+    window.localStorage.removeItem("token");
+  }
+  emitAuthStorageChange();
+}
+
+export function setStoredUser(user: StoredUser | null) {
+  if (typeof window === "undefined") return;
+  if (user && typeof user === "object") {
+    window.localStorage.setItem("user", JSON.stringify(user));
+  } else {
+    window.localStorage.removeItem("user");
+  }
+  emitAuthStorageChange();
 }
 
 export async function refreshStoredUserFromApi() {
@@ -81,6 +113,6 @@ export async function refreshStoredUserFromApi() {
   const data = (await response.json()) as MeResponse;
   if (!data?.user || typeof data.user !== "object") return null;
 
-  window.localStorage.setItem("user", JSON.stringify(data.user));
+  setStoredUser(data.user);
   return data.user;
 }
