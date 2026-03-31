@@ -74,6 +74,13 @@ export function normalizeProfessional(raw: unknown): Professional | null {
         .filter((categoryId): categoryId is string => Boolean(categoryId))
     : [];
 
+  const parsedDistance =
+    typeof item.distance === "number"
+      ? item.distance
+      : typeof item.distance === "string"
+      ? Number(item.distance)
+      : null;
+
   return {
     id: String(rawId),
     name: rawName,
@@ -84,7 +91,7 @@ export function normalizeProfessional(raw: unknown): Professional | null {
     rating: typeof item.rating === "number" ? item.rating : 0,
     reviews: typeof item.reviews === "number" ? item.reviews : 0,
     city: typeof item.city === "string" ? item.city : "",
-    distance: typeof item.distance === "number" ? item.distance : 0,
+    distance: Number.isFinite(parsedDistance) ? parsedDistance : undefined,
     completedJobs:
       typeof item.completedJobs === "number" ? item.completedJobs : 0,
     area: typeof item.area === "number" ? item.area : 0,

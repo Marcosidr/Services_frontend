@@ -54,7 +54,7 @@ interface Professional {
   rating: number;
   reviews: number;
   city: string;
-  distance: number;
+  distance?: number;
   completedJobs: number;
   area: number;
   description: string;
@@ -352,7 +352,10 @@ interface Professional {
                   <div className="flex items-center gap-1 mt-1 text-sm text-gray-500">
                     <MapPin className="w-3.5 h-3.5" />
                     <span>
-                      {pro.city} · {pro.distance} km de você
+                      {pro.city}
+                      {typeof pro.distance === "number"
+                        ? ` · ${pro.distance.toFixed(1)} km de voce`
+                        : ""}
                     </span>
                   </div>
                 </div>

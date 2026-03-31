@@ -31,6 +31,8 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
   const safePhoto = typeof pro.photo === "string" ? pro.photo.trim() : "";
   const hasPhoto = Boolean(safePhoto) && !imageFailed;
   const fallbackInitial = pro.name.trim().charAt(0).toUpperCase() || "P";
+  const hasRating = typeof pro.rating === "number" && pro.rating > 0;
+  const hasDistance = typeof pro.distance === "number";
 
   return (
     <div
@@ -78,13 +80,13 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
               <p className="text-sm text-gray-500 mt-0.5">{pro.categoryLabel}</p>
             )}
 
-            {(pro.rating || pro.distance) && (
+            {(hasRating || hasDistance) && (
               <div className="flex items-center gap-3 mt-1.5">
-                {pro.rating !== undefined && (
+                {hasRating && (
                   <div className="flex items-center gap-1">
                     <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
                     <span className="text-sm text-gray-700" style={{ fontWeight: 600 }}>
-                      {pro.rating.toFixed(1)}
+                      {pro.rating!.toFixed(1)}
                     </span>
                     {pro.reviews !== undefined && (
                       <span className="text-xs text-gray-400">({pro.reviews})</span>
@@ -92,10 +94,10 @@ export function ProfessionalCard({ pro, highlighted, onSelect }: ProfessionalCar
                   </div>
                 )}
 
-                {pro.distance !== undefined && (
+                {hasDistance && (
                   <div className="flex items-center gap-1 text-xs text-gray-500">
                     <MapPin className="w-3 h-3" />
-                    <span>{pro.distance} km</span>
+                    <span>{pro.distance!.toFixed(1)} km</span>
                   </div>
                 )}
               </div>

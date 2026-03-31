@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { CheckCircle, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { CheckCircle, ChevronLeft, ChevronRight, MapPin, Navigation } from "lucide-react";
 import { cepValido, fetchViaCep, formatCep, normalizeCep } from "../utils/cep";
 import { formatCpf, isValidCpf, normalizeCpf } from "../utils/cpf";
 import { getEmailValidationError, normalizeEmail } from "../utils/email";
@@ -36,6 +36,8 @@ interface RegisterForm {
   area: string;
   online: boolean;
   photoUrl: string;
+  latitude: string;
+  longitude: string;
 }
 
 type StepOneField =
@@ -132,6 +134,7 @@ export function RegisterProfessional() {
   const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
   const [cpfLookupMessage, setCpfLookupMessage] = useState("");
   const [cepLookupLoading, setCepLookupLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const [form, setForm] = useState<RegisterForm>({
     cpf: "",
@@ -155,7 +158,9 @@ export function RegisterProfessional() {
     priceUnit: "hora",
     area: "10",
     online: false,
-    photoUrl: ""
+    photoUrl: "",
+    latitude: "",
+    longitude: ""
   });
 
   useEffect(() => {
@@ -312,6 +317,32 @@ export function RegisterProfessional() {
     }
   };
 
+  const useCurrentLocation = () => {
+    setSubmitError("");
+
+    if (!("geolocation" in navigator)) {
+      setSubmitError("Seu navegador nao suporta geolocalizacao.");
+      return;
+    }
+
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        update("latitude", position.coords.latitude.toFixed(6));
+        update("longitude", position.coords.longitude.toFixed(6));
+        setLocationLoading(false);
+      },
+      () => {
+        setLocationLoading(false);
+        setSubmitError("Nao foi possivel obter sua localizacao atual.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000
+      }
+    );
+  };
+
   const validateStep = () => {
     if (step === 1) {
       for (const field of stepOneFields) {
@@ -385,7 +416,9 @@ export function RegisterProfessional() {
         priceUnit: form.priceUnit,
         area: form.area,
         online: form.online,
-        photoUrl: form.photoUrl.trim()
+        photoUrl: form.photoUrl.trim(),
+        latitude: form.latitude.trim(),
+        longitude: form.longitude.trim()
       };
 
       const response = await fetch(apiPath("/api/professionals/register"), {
@@ -768,6 +801,50 @@ export function RegisterProfessional() {
                 onChange={(e) => update("area", e.target.value)}
                 className="w-full accent-blue-600"
               />
+              <div className="flex items-center justify-between text-xs text-gray-500 -mt-2">
+                <span>1 km</span>
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700" style={{ fontWeight: 600 }}>
+                  Raio atual: {Number(form.area || "0")} km
+                </span>
+                <span>50 km</span>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm text-gray-700 font-semibold">Localizacao do atendimento</p>
+                  <button
+                    type="button"
+                    onClick={useCurrentLocation}
+                    disabled={locationLoading}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    {locationLoading ? (
+                      <div className="w-3.5 h-3.5 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Navigation className="w-3.5 h-3.5" />
+                    )}
+                    {locationLoading ? "Detectando..." : "Usar localizacao atual"}
+                  </button>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    value={form.latitude}
+                    onChange={(e) => update("latitude", e.target.value)}
+                    placeholder="Latitude (ex: -23.550520)"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                  />
+                  <input
+                    value={form.longitude}
+                    onChange={(e) => update("longitude", e.target.value)}
+                    placeholder="Longitude (ex: -46.633308)"
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400"
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-400">
+                  Opcional. Quando preenchido, seu perfil aparece ordenado por proximidade.
+                </p>
+              </div>
 
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>

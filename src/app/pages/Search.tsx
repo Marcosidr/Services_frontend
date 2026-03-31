@@ -70,6 +70,10 @@ function SearchPage() {
       const apiParams = new URLSearchParams();
       if (queryParam) apiParams.set("q", queryParam);
       if (activeCategoryParam) apiParams.set("cat", activeCategoryParam);
+      if (latitudeParam && longitudeParam) {
+        apiParams.set("lat", latitudeParam);
+        apiParams.set("lng", longitudeParam);
+      }
 
       const professionalsPath = `/api/professionals${
         apiParams.toString() ? `?${apiParams.toString()}` : ""
@@ -126,7 +130,7 @@ function SearchPage() {
     const controller = new AbortController();
     void loadSearchData(controller.signal);
     return () => controller.abort();
-  }, [queryParam, activeCategoryParam]);
+  }, [queryParam, activeCategoryParam, latitudeParam, longitudeParam]);
 
   const title = useMemo(() => {
     if (queryParam && activeCategoryParam) return "Resultados filtrados";

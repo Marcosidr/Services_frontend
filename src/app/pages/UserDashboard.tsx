@@ -15,6 +15,7 @@ import {
   Clock,
   XCircle,
   AlertCircle,
+  Navigation
 } from "lucide-react";
 import { getAuthorizationHeader } from "../utils/auth";
 import { fileToOptimizedDataUrl } from "../utils/image";
@@ -160,6 +161,8 @@ type ProfileForm = {
   bio: string;
   professionalDescription: string;
   professionalPhotoUrl: string;
+  professionalLatitude: string;
+  professionalLongitude: string;
 };
 
 function parsePositiveInteger(value: string | null) {
@@ -277,9 +280,12 @@ function UserDashboard() {
     photoUrl: "",
     bio: "",
     professionalDescription: "",
-    professionalPhotoUrl: ""
+    professionalPhotoUrl: "",
+    professionalLatitude: "",
+    professionalLongitude: ""
   });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [professionalLocationLoading, setProfessionalLocationLoading] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [loadingConversations, setLoadingConversations] = useState(false);
@@ -370,6 +376,8 @@ function UserDashboard() {
         const data = (await response.json()) as {
           description?: string;
           photo?: string;
+          latitude?: number | null;
+          longitude?: number | null;
         };
 
         setProfileForm((prev) => ({
@@ -377,7 +385,11 @@ function UserDashboard() {
           professionalDescription:
             typeof data.description === "string" ? data.description : "",
           professionalPhotoUrl:
-            typeof data.photo === "string" ? data.photo : prev.professionalPhotoUrl
+            typeof data.photo === "string" ? data.photo : prev.professionalPhotoUrl,
+          professionalLatitude:
+            typeof data.latitude === "number" ? data.latitude.toFixed(6) : "",
+          professionalLongitude:
+            typeof data.longitude === "number" ? data.longitude.toFixed(6) : ""
         }));
       } catch (err) {
         console.error(err);
@@ -919,6 +931,33 @@ function UserDashboard() {
     }
   };
 
+  const useCurrentProfessionalLocation = () => {
+    setError("");
+
+    if (!("geolocation" in navigator)) {
+      setError("Seu navegador nao suporta geolocalizacao.");
+      return;
+    }
+
+    setProfessionalLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        updateProfileField("professionalLatitude", position.coords.latitude.toFixed(6));
+        updateProfileField("professionalLongitude", position.coords.longitude.toFixed(6));
+        setProfessionalLocationLoading(false);
+      },
+      () => {
+        setProfessionalLocationLoading(false);
+        setError("Nao foi possivel obter sua localizacao atual.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000
+      }
+    );
+  };
+
   const saveProfile = async () => {
     try {
       setSavingProfile(true);
@@ -968,7 +1007,9 @@ function UserDashboard() {
           },
           body: JSON.stringify({
             description: profileForm.professionalDescription,
-            photoUrl: profileForm.professionalPhotoUrl || profileForm.photoUrl
+            photoUrl: profileForm.professionalPhotoUrl || profileForm.photoUrl,
+            latitude: profileForm.professionalLatitude.trim(),
+            longitude: profileForm.professionalLongitude.trim()
           })
         });
 
@@ -1824,6 +1865,39 @@ if (error) {
                     rows={4}
                     className="resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-slate-400"
                   />
+
+                  <div className="rounded-xl border border-slate-200 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs text-slate-500">Localizacao do profissional</p>
+                      <button
+                        type="button"
+                        onClick={useCurrentProfessionalLocation}
+                        disabled={professionalLocationLoading}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                      >
+                        {professionalLocationLoading ? (
+                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+                        ) : (
+                          <Navigation className="h-3.5 w-3.5" />
+                        )}
+                        {professionalLocationLoading ? "Detectando..." : "Usar localizacao atual"}
+                      </button>
+                    </div>
+                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <input
+                        value={profileForm.professionalLatitude}
+                        onChange={(event) => updateProfileField("professionalLatitude", event.target.value)}
+                        placeholder="Latitude"
+                        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-slate-400"
+                      />
+                      <input
+                        value={profileForm.professionalLongitude}
+                        onChange={(event) => updateProfileField("professionalLongitude", event.target.value)}
+                        placeholder="Longitude"
+                        className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-slate-400"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 

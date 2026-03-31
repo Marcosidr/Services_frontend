@@ -51,14 +51,25 @@ function Home() {
   const [dataError, setDataError] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<CurrentLocation | null>(null);
 
-  async function loadHomeData(signal?: AbortSignal) {
+  async function loadHomeData(signal?: AbortSignal, location?: CurrentLocation | null) {
     setLoadingData(true);
     setDataError(null);
 
     try {
+      const effectiveLocation = location ?? currentLocation;
+      const professionalsParams = new URLSearchParams();
+      if (effectiveLocation) {
+        professionalsParams.set("lat", String(effectiveLocation.latitude));
+        professionalsParams.set("lng", String(effectiveLocation.longitude));
+      }
+
+      const professionalsPath = `/api/professionals${
+        professionalsParams.toString() ? `?${professionalsParams.toString()}` : ""
+      }`;
+
       const [categoriesResponse, professionalsResponse] = await Promise.all([
         fetch("/api/categories", { signal }),
-        fetch("/api/professionals", { signal })
+        fetch(professionalsPath, { signal })
       ]);
 
       if (!categoriesResponse.ok) {
@@ -124,6 +135,7 @@ function Home() {
       ) {
         setCurrentLocation(parsed);
         setLocationGranted(true);
+        void loadHomeData(undefined, parsed);
       }
     } catch {
       window.sessionStorage.removeItem(LOCATION_STORAGE_KEY);
@@ -187,10 +199,11 @@ function Home() {
         JSON.stringify(nextLocation)
       );
       setMenuMessage(
-        `Localizacao atual detectada ${Math.round(
+        `Localizacao atual detectada (precisao de ${Math.round(
           nextLocation.accuracy
-        )}m).`
+        )} m).`
       );
+      void loadHomeData(undefined, nextLocation);
     } catch {
       setMenuMessage("Nao foi possivel obter sua localizacao.");
       setLocationGranted(false);
