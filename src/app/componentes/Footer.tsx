@@ -45,22 +45,24 @@ function Footer() {
   const serviceLinks = isAdmin ? [...baseServiceLinks, adminServiceLink] : baseServiceLinks;
 
   return (
-    <footer className="relative border-t border-primary/60 bg-gradient-to-b from-primary via-primary/90 to-secondary text-primary-foreground">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
+    <footer className="relative mt-12 overflow-hidden border-t border-primary/25 bg-gradient-to-b from-slate-950 via-slate-900 to-primary text-primary-foreground">
+      <div className="pointer-events-none absolute -left-20 top-0 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 bottom-0 h-52 w-52 rounded-full bg-secondary/25 blur-3xl" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="section-container py-12">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
           <section>
             <Link to="/" className="inline-flex items-center gap-2">
-              <span className="w-9 h-9 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center shadow-sm">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/25 bg-white/20 shadow-sm">
                 <MapPin className="w-4 h-4 text-white" />
               </span>
-              <span className="text-lg text-white" style={{ fontWeight: 700 }}>
+              <span className="text-gradient-brand text-lg" style={{ fontWeight: 700 }}>
                 Zen<span className="text-accent">try</span>
               </span>
             </Link>
 
-            <p className="mt-4 text-sm leading-relaxed text-primary-foreground/90 max-w-xs">
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-primary-foreground/90">
               Conectamos clientes a profissionais de confianca, com seguranca e
               agilidade em toda a sua regiao.
             </p>
@@ -68,21 +70,21 @@ function Footer() {
             <div className="mt-5 flex items-center gap-2">
               <a
                 href="#"
-                className="w-9 h-9 rounded-lg border border-white/30 text-primary-foreground hover:bg-white hover:text-primary hover:border-white transition-colors flex items-center justify-center"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/30 text-primary-foreground hover:-translate-y-0.5 hover:border-white hover:bg-white hover:text-primary"
                 aria-label="Instagram"
               >
                 <Instagram className="w-4 h-4" />
               </a>
               <a
                 href="#"
-                className="w-9 h-9 rounded-lg border border-white/30 text-primary-foreground hover:bg-white hover:text-primary hover:border-white transition-colors flex items-center justify-center"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/30 text-primary-foreground hover:-translate-y-0.5 hover:border-white hover:bg-white hover:text-primary"
                 aria-label="Facebook"
               >
                 <Facebook className="w-4 h-4" />
               </a>
               <a
                 href="#"
-                className="w-9 h-9 rounded-lg border border-white/30 text-primary-foreground hover:bg-white hover:text-primary hover:border-white transition-colors flex items-center justify-center"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/30 text-primary-foreground hover:-translate-y-0.5 hover:border-white hover:bg-white hover:text-primary"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="w-4 h-4" />
@@ -102,7 +104,7 @@ function Footer() {
                 <li key={item.label}>
                   <Link
                     to={item.to}
-                    className="text-sm text-primary-foreground/90 hover:text-accent transition-colors"
+                    className="text-sm text-primary-foreground/90 hover:text-accent"
                   >
                     {item.label}
                   </Link>
@@ -123,7 +125,7 @@ function Footer() {
                 <li key={item.label}>
                   <Link
                     to={item.to}
-                    className="text-sm text-primary-foreground/90 hover:text-accent transition-colors"
+                    className="text-sm text-primary-foreground/90 hover:text-accent"
                   >
                     {item.label}
                   </Link>
@@ -154,7 +156,7 @@ function Footer() {
               </p>
             </div>
 
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1.5 text-xs text-blue-50">
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs text-blue-50">
               <ShieldCheck className="w-3.5 h-3.5" />
               Pagamento seguro e suporte dedicado
             </div>

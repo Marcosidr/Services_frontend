@@ -262,7 +262,7 @@ interface Professional {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="page-shell flex min-h-screen items-center justify-center">
         <p className="text-gray-500">Carregando profissional...</p>
       </div>
     );
@@ -270,11 +270,11 @@ interface Professional {
 
   if (error || !pro) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+      <div className="page-shell flex min-h-screen flex-col items-center justify-center px-4">
         <p className="text-red-500 mb-4">{error || "Profissional não encontrado."}</p>
         <button
           onClick={() => navigate(-1)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition-colors"
+          className="btn-primary"
         >
           Voltar
         </button>
@@ -285,12 +285,12 @@ interface Professional {
   const reviews = pro.reviewList ?? [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100 sticky top-16 z-30">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
+    <div className="page-shell">
+      <div className="sticky top-16 z-30 border-b border-white/70 bg-white/75 backdrop-blur-md">
+        <div className="mx-auto flex max-w-4xl items-center gap-3 px-4 py-3 sm:px-6">
           <button
             onClick={() => navigate(-1)}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+            className="rounded-lg p-1.5 hover:bg-primary/10"
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
@@ -298,10 +298,10 @@ interface Professional {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 flex flex-col gap-4">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="surface-card p-6">
               <div className="flex items-start gap-4">
                 <div className="relative">
                   <img
@@ -394,7 +394,7 @@ interface Professional {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <div className="surface-card p-5">
               <h3 className="text-gray-900 mb-2">Sobre o profissional</h3>
               <p className="text-gray-600 text-sm leading-relaxed">
                 {pro.description}
@@ -412,7 +412,7 @@ interface Professional {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <div className="surface-card p-5">
               <h3 className="text-gray-900 mb-4">Avaliações dos clientes</h3>
 
               {reviews.length === 0 ? (
@@ -477,7 +477,7 @@ interface Professional {
           </div>
 
           <div className="flex flex-col gap-4">
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 sticky top-32">
+            <div className="surface-card sticky top-32 p-5">
               <div className="flex items-baseline gap-1 mb-1">
                 <span
                   className="text-blue-600"
@@ -506,7 +506,7 @@ interface Professional {
 
               <button
                 onClick={() => setShowBooking(true)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl transition-colors mb-2"
+                className="btn-primary mb-2 w-full py-3"
               >
                 Contratar Agora
               </button>
@@ -517,7 +517,7 @@ interface Professional {
 
               <a
                 href={`tel:${pro.phone}`}
-                className="w-full flex items-center justify-center gap-2 mt-2 border border-gray-200 text-gray-600 hover:bg-gray-50 py-3 rounded-xl transition-colors"
+                className="btn-secondary mt-2 w-full py-3 text-gray-600"
               >
                 <Phone className="w-4 h-4" />
                 {pro.phone}

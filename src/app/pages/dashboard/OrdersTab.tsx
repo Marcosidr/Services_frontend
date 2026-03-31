@@ -33,7 +33,7 @@ export function OrdersTab({
   return (
     <div className="space-y-4">
       {orders.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white/95 p-8 text-center text-slate-500 shadow-sm">
+        <div className="surface-card p-8 text-center text-slate-500">
           Nenhum pedido encontrado.
         </div>
       ) : (
@@ -46,7 +46,7 @@ export function OrdersTab({
           return (
             <div
               key={order.id}
-              className="rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className="surface-card rounded-2xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
             >
               <div className="flex items-start gap-4">
                 {counterpart.photo ? (
@@ -94,7 +94,7 @@ export function OrdersTab({
               {!isProfessionalDashboard && order.status === "concluido" && !hasRating && (
                 <button
                   onClick={() => onOpenRatingModal(order.id)}
-                  className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 py-2.5 text-sm text-amber-700 transition-colors hover:bg-amber-100"
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 py-2.5 text-sm text-amber-700 transition-colors hover:bg-amber-100"
                 >
                   <Star className="w-4 h-4" />
                   Avaliar servico
@@ -125,7 +125,7 @@ export function OrdersTab({
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={() => onShowChatFromOrder(order)}
-                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                    className="btn-secondary flex-1 py-2.5 text-sm text-slate-700"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
                     Chat
@@ -133,7 +133,7 @@ export function OrdersTab({
 
                   <button
                     onClick={() => onCancelOrder(order.id)}
-                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-100"
+                    className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-100"
                   >
                     <X className="w-3.5 h-3.5" />
                     Cancelar
@@ -145,14 +145,14 @@ export function OrdersTab({
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={() => void onAcceptOrder(order.id)}
-                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm text-emerald-700 transition-colors hover:bg-emerald-100"
+                    className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm text-emerald-700 transition-colors hover:bg-emerald-100"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
                     Aceitar
                   </button>
                   <button
                     onClick={() => void onRejectOrder(order.id)}
-                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-100"
+                    className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-100"
                   >
                     <X className="w-3.5 h-3.5" />
                     Recusar
@@ -164,14 +164,14 @@ export function OrdersTab({
                 <div className="mt-3 flex gap-2">
                   <button
                     onClick={() => onShowChatFromOrder(order)}
-                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 py-2.5 text-sm text-slate-700 transition-colors hover:bg-slate-100"
+                    className="btn-secondary flex-1 py-2.5 text-sm text-slate-700"
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
                     Chat
                   </button>
                   <button
                     onClick={() => void onCompleteOrder(order.id)}
-                    className="flex-1 flex items-center justify-center gap-1 rounded-xl border border-blue-200 bg-blue-50 py-2.5 text-sm text-blue-700 transition-colors hover:bg-blue-100"
+                    className="flex flex-1 items-center justify-center gap-1 rounded-xl border border-blue-200 bg-blue-50 py-2.5 text-sm text-blue-700 transition-colors hover:bg-blue-100"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
                     Finalizar

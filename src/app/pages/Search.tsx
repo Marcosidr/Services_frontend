@@ -140,8 +140,8 @@ function SearchPage() {
   }, [queryParam, activeCategoryParam]);
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-5">
+    <section className="section-container py-8">
+      <div className="surface-card p-5 mb-5 animate-fade-up">
         <div className="flex items-center gap-2 text-primary mb-2">
           <Filter className="w-4 h-4" />
           <p className="text-sm" style={{ fontWeight: 600 }}>
@@ -157,13 +157,13 @@ function SearchPage() {
               placeholder="Busque por nome, categoria ou cidade"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-800 outline-none focus:border-primary/50"
+              className="input-surface w-full pl-10"
             />
           </div>
 
           <button
             type="submit"
-            className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl transition-colors"
+            className="btn-primary"
           >
             Buscar
           </button>
@@ -176,8 +176,8 @@ function SearchPage() {
               px-3 py-1.5 rounded-full text-sm border whitespace-nowrap
               ${
                 !activeCategoryParam
-                  ? "bg-primary text-white border-primary"
-                  : "bg-gray-50 text-gray-700 border-gray-200"
+                  ? "bg-primary text-white border-primary shadow-[0_10px_24px_-16px_rgba(29,78,216,0.95)]"
+                  : "bg-white text-slate-700 border-slate-200"
               }
             `}
           >
@@ -188,15 +188,15 @@ function SearchPage() {
             <button
               key={category.id}
               onClick={() => handleCategoryToggle(category.id)}
-              className={`
+                className={`
                 px-3 py-1.5 rounded-full text-sm border whitespace-nowrap
                 ${
                   activeCategoryParam === category.id
-                    ? "bg-primary text-white border-primary"
-                    : "bg-gray-50 text-gray-700 border-gray-200"
+                    ? "bg-primary text-white border-primary shadow-[0_10px_24px_-16px_rgba(29,78,216,0.95)]"
+                    : "bg-white text-slate-700 border-slate-200"
                 }
               `}
-            >
+              >
               {category.label}
             </button>
           ))}
@@ -219,7 +219,7 @@ function SearchPage() {
           onClick={() => {
             void loadSearchData();
           }}
-          className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80"
+          className="btn-ghost text-sm"
         >
           <RefreshCw className="w-4 h-4" />
           Atualizar
@@ -227,23 +227,23 @@ function SearchPage() {
       </div>
 
       {loadingData ? (
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 text-gray-600">
+        <div className="surface-card p-6 text-gray-600">
           Carregando profissionais...
         </div>
       ) : dataError ? (
-        <div className="bg-white border border-red-200 rounded-2xl p-6">
+        <div className="surface-card border-red-200 p-6">
           <p className="text-red-600 mb-3">{dataError}</p>
           <button
             onClick={() => {
               void loadSearchData();
             }}
-            className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors"
+            className="btn-primary"
           >
             Tentar novamente
           </button>
         </div>
       ) : professionals.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 text-gray-600">
+        <div className="surface-card p-6 text-gray-600">
           Nenhum profissional encontrado com os filtros atuais.
         </div>
       ) : (

@@ -447,8 +447,8 @@ export function RegisterProfessional() {
   };
   if (done) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-lg">
+      <div className="page-shell flex min-h-screen items-center justify-center p-4">
+        <div className="surface-card-strong max-w-md w-full p-8 text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
             <CheckCircle className="w-10 h-10 text-green-500" />
           </div>
@@ -458,7 +458,7 @@ export function RegisterProfessional() {
 
           <button
             onClick={() => navigate("/")}
-            className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-colors"
+            className="btn-primary w-full py-3"
           >
             Voltar ao inicio
           </button>
@@ -468,7 +468,7 @@ export function RegisterProfessional() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="page-shell">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <button
@@ -523,7 +523,7 @@ export function RegisterProfessional() {
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="surface-card p-6">
           {step === 1 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -887,7 +887,7 @@ export function RegisterProfessional() {
               <button
                 onClick={nextStep}
                 disabled={loading}
-                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-60"
+                className="btn-primary px-6 py-2.5 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Proximo
                 <ChevronRight className="w-4 h-4" />
@@ -896,7 +896,7 @@ export function RegisterProfessional() {
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex items-center gap-2 bg-green-600 text-white px-6 py-2.5 rounded-xl hover:bg-green-700 transition-colors disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-white shadow-[0_14px_30px_-20px_rgba(5,150,105,0.95)] hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

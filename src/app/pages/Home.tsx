@@ -242,23 +242,25 @@ function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <section className="bg-gradient-to-br from-primary via-primary/90 to-secondary text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm mb-4">
+    <div className="page-shell">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary via-blue-700 to-secondary text-white">
+        <div className="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/30 blur-3xl" />
+        <div className="section-container relative pt-12 pb-16">
+          <div className="max-w-2xl animate-fade-up">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-3 py-1 text-sm backdrop-blur-sm">
               <MapPin className="w-3.5 h-3.5" />
               <span>Encontre profissionais perto de voce</span>
             </div>
 
             <h1
-              className="text-3xl md:text-5xl text-white mb-4"
+              className="mb-4 text-3xl text-white md:text-5xl"
               style={{ fontWeight: 700, lineHeight: 1.2 }}
             >
               Encontre o profissional <span className="text-accent">certo</span> perto de voce
             </h1>
 
-            <p className="text-white/90 mb-8 text-lg">
+            <p className="mb-8 text-lg text-white/90">
               Conectamos voce com profissionais verificados e organizamos as
               opcoes para voce escolher com seguranca.
             </p>
@@ -267,7 +269,7 @@ function Home() {
               <button
                 onClick={handleLocationRequest}
                 disabled={locationLoading}
-                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 border border-white/40 text-white px-4 py-2.5 rounded-xl mb-5 transition-all"
+                className="mb-5 flex items-center gap-2 rounded-xl border border-white/45 bg-white/15 px-4 py-2.5 text-white backdrop-blur-md hover:-translate-y-0.5 hover:bg-white/25"
               >
                 {locationLoading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -292,7 +294,7 @@ function Home() {
 
             {menuMessage && <p className="text-sm text-accent mb-3">{menuMessage}</p>}
 
-            <form onSubmit={handleSearch} className="flex gap-3">
+            <form onSubmit={handleSearch} className="hero-glass flex gap-3 p-2.5 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.75)]">
               <div className="flex-1 relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -300,12 +302,12 @@ function Home() {
                   placeholder="Qual servico voce precisa?"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  className="w-full pl-11 pr-4 py-3.5 rounded-xl bg-white text-gray-800 placeholder-gray-400 outline-none shadow-lg"
+                  className="w-full rounded-xl border border-white/70 bg-white pl-11 pr-4 py-3.5 text-gray-800 placeholder-gray-400 outline-none"
                 />
               </div>
               <button
                 type="submit"
-                className="bg-accent hover:bg-accent/90 text-gray-900 px-6 py-3.5 rounded-xl transition-colors shadow-lg whitespace-nowrap"
+                className="btn-accent whitespace-nowrap px-6 py-3.5"
               >
                 Buscar
               </button>
@@ -314,8 +316,8 @@ function Home() {
         </div>
       </section>
 
-      <section className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <section className="border-b border-white/70 bg-white/60 backdrop-blur-md">
+        <div className="section-container py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-primary/70">
@@ -327,7 +329,7 @@ function Home() {
             {activeCategory && (
               <button
                 onClick={clearCategoryFilter}
-                className="text-sm text-primary hover:text-primary/80"
+                className="btn-ghost text-sm"
               >
                 Limpar filtro
               </button>
@@ -352,11 +354,11 @@ function Home() {
                       key={category.id}
                       onClick={() => handleCategory(category.id)}
                       className={`
-                        w-[190px] rounded-2xl border p-4 text-left transition-all
+                        w-[190px] rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5
                         ${
                           isActive
-                            ? "border-primary bg-primary text-white shadow-md"
-                            : "border-gray-200 bg-gray-50 text-gray-800 hover:border-primary/40 hover:bg-white"
+                            ? "border-primary bg-primary text-white shadow-[0_16px_36px_-24px_rgba(29,78,216,0.95)]"
+                            : "border-slate-200 bg-white/85 text-slate-800 hover:border-primary/35 hover:bg-white"
                         }
                       `}
                     >
@@ -397,7 +399,7 @@ function Home() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <section className="section-container py-8">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-gray-900">Profissionais</h2>
@@ -417,7 +419,7 @@ function Home() {
 
           <button
             onClick={() => navigate("/profissionais")}
-            className="flex items-center gap-1 text-sm text-primary hover:text-primary/80"
+            className="btn-ghost text-sm"
           >
             Ver todos
             <ChevronRight className="w-4 h-4" />
@@ -425,23 +427,23 @@ function Home() {
         </div>
 
         {loadingData ? (
-          <div className="bg-white border border-gray-100 rounded-2xl p-6">
+          <div className="surface-card p-6">
             <p className="text-gray-600">Buscando profissionais e categorias...</p>
           </div>
         ) : dataError ? (
-          <div className="bg-white border border-red-200 rounded-2xl p-6">
+          <div className="surface-card border-red-200 p-6">
             <p className="text-red-600 mb-3">{dataError}</p>
             <button
               onClick={() => {
                 void loadHomeData();
               }}
-              className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors"
+              className="btn-primary"
             >
               Tentar novamente
             </button>
           </div>
         ) : visibleProfessionals.length === 0 ? (
-          <div className="bg-white border border-gray-100 rounded-2xl p-6">
+          <div className="surface-card p-6">
             <p className="text-gray-600">
               Assim que houver profissionais cadastrados no banco, eles aparecem aqui automaticamente.
             </p>
@@ -460,8 +462,8 @@ function Home() {
         )}
       </section>
 
-      <section className="bg-white border-t border-gray-100 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <section className="mt-6 border-y border-white/75 bg-white/65">
+        <div className="section-container py-12">
           <h2 className="text-center text-gray-900 mb-10">
             Por que usar a plataforma?
           </h2>
@@ -489,7 +491,7 @@ function Home() {
             ].map((feature, index) => (
               <div
                 key={index}
-                className="flex flex-col items-center text-center p-6 rounded-2xl bg-gray-50"
+                className="surface-card flex flex-col items-center p-6 text-center"
               >
                 <div
                   className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-4`}
@@ -504,18 +506,20 @@ function Home() {
         </div>
       </section>
 
-      <section className="bg-white py-12">
-        <div className="max-w-3xl mx-auto px-4 text-center">
+      <section className="py-14">
+        <div className="section-container">
+          <div className="surface-card-strong mx-auto max-w-3xl px-4 py-12 text-center">
           <h2 className="text-gray-900 mb-3">Voce e um profissional?</h2>
           <p className="text-gray-500 mb-6">
             Cadastre-se e comece a receber solicitacoes de clientes.
           </p>
           <button
             onClick={() => navigate("/cadastrar-profissional")}
-            className="bg-accent hover:bg-accent/90 text-gray-900 px-8 py-3.5 rounded-xl transition-colors shadow-md"
+            className="btn-accent px-8 py-3.5"
           >
             Quero me cadastrar
           </button>
+          </div>
         </div>
       </section>
     </div>

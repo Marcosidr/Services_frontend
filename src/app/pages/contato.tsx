@@ -49,11 +49,11 @@ export function Contato() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-white">
+    <main className="page-shell bg-gradient-to-b from-white via-slate-50/70 to-white">
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.10),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.10),transparent_30%)]" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-16">
+        <div className="section-container relative pt-14 pb-16">
           <div className="grid lg:grid-cols-2 gap-10 items-center">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white/80 px-3 py-1.5 text-sm text-primary shadow-sm">
@@ -78,10 +78,7 @@ export function Contato() {
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => navigate("/profissionais")}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-white font-medium shadow-md hover:bg-primary/90 transition-colors"
-                >
+                <button onClick={() => navigate("/profissionais")} className="btn-primary px-5 py-3">
                   Ver profissionais
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -91,7 +88,7 @@ export function Contato() {
                     const formSection = document.getElementById("form-contato");
                     formSection?.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+                  className="btn-secondary px-5 py-3"
                 >
                   Falar com a equipe
                 </button>
@@ -111,7 +108,7 @@ export function Contato() {
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
-              <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="surface-card rounded-3xl p-6 hover:shadow-md">
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                   <MapPin className="w-5 h-5" />
                 </div>
@@ -124,7 +121,7 @@ export function Contato() {
                 </p>
               </div>
 
-              <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="surface-card rounded-3xl p-6 hover:shadow-md">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
                   <Navigation className="w-5 h-5" />
                 </div>
@@ -137,7 +134,7 @@ export function Contato() {
                 </p>
               </div>
 
-              <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="surface-card rounded-3xl p-6 hover:shadow-md">
                 <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
                   <Shield className="w-5 h-5" />
                 </div>
@@ -150,7 +147,7 @@ export function Contato() {
                 </p>
               </div>
 
-              <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="surface-card rounded-3xl p-6 hover:shadow-md">
                 <div className="w-12 h-12 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center">
                   <Clock className="w-5 h-5" />
                 </div>
@@ -168,7 +165,7 @@ export function Contato() {
       </section>
 
       <section id="form-contato" className="pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="section-container">
           <div className="grid lg:grid-cols-5 gap-8">
             <div className="lg:col-span-2">
               <div className="sticky top-24 rounded-3xl bg-slate-900 text-white p-8 shadow-xl">
@@ -206,7 +203,7 @@ export function Contato() {
             </div>
 
             <div className="lg:col-span-3">
-              <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-6 sm:p-8">
+              <div className="surface-card rounded-3xl p-6 sm:p-8">
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold text-slate-900">
                     Envie sua mensagem

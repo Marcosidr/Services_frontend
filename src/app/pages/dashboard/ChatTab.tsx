@@ -49,10 +49,10 @@ export function ChatTab({
   sendingMessage
 }: ChatTabProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm">
+    <div className="surface-card overflow-hidden">
       <div className="grid min-h-[34rem] grid-cols-1 md:grid-cols-[300px,1fr]">
-        <aside className="border-b border-slate-200 bg-slate-50/70 md:border-b-0 md:border-r">
-          <div className="border-b border-slate-200 bg-white px-3 py-3">
+        <aside className="border-b border-slate-200 bg-slate-50/50 md:border-b-0 md:border-r">
+          <div className="border-b border-slate-200 bg-white/80 px-3 py-3 backdrop-blur">
             <p className="text-sm text-slate-800" style={{ fontWeight: 600 }}>
               Conversas
             </p>
@@ -63,7 +63,7 @@ export function ChatTab({
                 value={conversationSearch}
                 onChange={(event) => onConversationSearchChange(event.target.value)}
                 placeholder="Buscar conversa..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 outline-none focus:border-slate-400"
+                className="input-surface w-full bg-white/85 py-2 pl-9 pr-3"
               />
             </div>
           </div>
@@ -87,7 +87,7 @@ export function ChatTab({
                 return (
                   <div
                     key={conversation.conversationId}
-                    className={`border-b border-slate-100 ${isActive ? "bg-slate-100/80" : "hover:bg-white"}`}
+                    className={`border-b border-slate-100 ${isActive ? "bg-primary/10" : "hover:bg-white/80"}`}
                   >
                     <div className="flex items-center gap-2 px-2 py-2">
                       <button
@@ -112,7 +112,7 @@ export function ChatTab({
                         ) : (
                           <div
                             className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                              isActive ? "bg-slate-200 text-slate-700" : "bg-slate-200 text-slate-500"
+                              isActive ? "bg-primary/15 text-primary" : "bg-slate-200 text-slate-500"
                             }`}
                           >
                             <User className="w-4 h-4" />
@@ -164,7 +164,7 @@ export function ChatTab({
         </aside>
 
         <section className="flex min-h-[34rem] flex-col">
-          <div className="flex items-center gap-3 border-b border-slate-200 bg-gradient-to-r from-slate-900 to-cyan-900 p-4 text-white">
+          <div className="flex items-center gap-3 border-b border-slate-200 bg-gradient-to-r from-primary to-secondary p-4 text-white">
             {activeChatProfessional?.photo ? (
               <img
                 src={activeChatProfessional.photo}
@@ -223,7 +223,7 @@ export function ChatTab({
                     <div
                       className={`max-w-xl rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
                         msg.sender === "user"
-                          ? "rounded-br-sm bg-slate-900 text-white"
+                          ? "rounded-br-sm bg-primary text-white"
                           : "rounded-bl-sm bg-white text-slate-700"
                       }`}
                     >
@@ -259,13 +259,13 @@ export function ChatTab({
               onKeyDown={(event) => event.key === "Enter" && void onSendMessage()}
               placeholder="Digite uma mensagem..."
               disabled={!activeChatProfessional || sendingMessage || loadingMessages}
-              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-slate-400 disabled:opacity-60"
+              className="input-surface flex-1 disabled:opacity-60"
             />
 
             <button
               onClick={() => void onSendMessage()}
               disabled={!activeChatProfessional || sendingMessage || loadingMessages}
-              className="rounded-xl bg-slate-900 p-2.5 text-white transition-colors hover:bg-slate-800 disabled:opacity-60"
+              className="btn-primary rounded-xl p-2.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Send className="w-4 h-4" />
             </button>

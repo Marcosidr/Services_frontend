@@ -449,32 +449,34 @@ function Login({ initialTab = "login", allowTabSwitch = true }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-white to-secondary/15 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-3">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-primary/12 via-white to-secondary/18 p-4">
+      <div className="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
+      <div className="w-full max-w-lg">
+        <div className="mb-8 text-center animate-fade-up">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-secondary text-white shadow-[0_14px_30px_-18px_rgba(29,78,216,0.95)]">
             <MapPin className="w-6 h-6 text-white" />
           </div>
 
-          <h1 className="text-primary tracking-tight" style={{ fontWeight: 800, fontSize: "1.15rem" }}>
-            Zen<span className="text-accent">try</span>
+          <h1 className="text-gradient-brand tracking-tight" style={{ fontWeight: 800, fontSize: "1.35rem" }}>
+            Zentry
           </h1>
 
-          <p className="text-gray-500 text-sm mt-1">Encontre profissionais perto de voce</p>
+          <p className="mt-1 text-sm text-gray-500">Encontre profissionais perto de voce</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-primary/10 shadow-lg overflow-hidden">
+        <div className="surface-card-strong overflow-hidden animate-fade-up animate-fade-up-delay-1">
           {allowTabSwitch && (
-            <div className="flex border-b border-primary/10">
+            <div className="flex border-b border-primary/10 bg-primary/5">
               <button
                 onClick={() => {
                   setTab("login");
                   resetMessages();
                   resetValidationState();
                 }}
-                className={`flex-1 py-4 text-sm transition-colors ${
+                className={`flex-1 py-4 text-sm ${
                   tab === "login"
-                    ? "text-primary border-b-2 border-primary bg-primary/10"
+                    ? "border-b-2 border-primary bg-white text-primary"
                     : "text-gray-500 hover:text-primary"
                 }`}
               >
@@ -487,9 +489,9 @@ function Login({ initialTab = "login", allowTabSwitch = true }: LoginProps) {
                   resetMessages();
                   resetValidationState();
                 }}
-                className={`flex-1 py-4 text-sm transition-colors ${
+                className={`flex-1 py-4 text-sm ${
                   tab === "register"
-                    ? "text-primary border-b-2 border-primary bg-primary/10"
+                    ? "border-b-2 border-primary bg-white text-primary"
                     : "text-gray-500 hover:text-primary"
                 }`}
               >
@@ -876,7 +878,7 @@ function Login({ initialTab = "login", allowTabSwitch = true }: LoginProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 disabled:bg-primary/60 text-white py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 mt-1"
+              className="btn-primary mt-1 w-full py-3.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading && (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -898,7 +900,7 @@ function Login({ initialTab = "login", allowTabSwitch = true }: LoginProps) {
                 <button
                   key={provider}
                   type="button"
-                  className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="btn-secondary py-2.5 text-sm text-gray-600"
                 >
                   {provider}
                 </button>
@@ -907,10 +909,10 @@ function Login({ initialTab = "login", allowTabSwitch = true }: LoginProps) {
           </form>
         </div>
 
-        <div className="mt-5 space-y-3">
+        <div className="mt-5 space-y-3 animate-fade-up animate-fade-up-delay-2">
           {!allowTabSwitch && tab === "login" && (
-            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-center">
-              <p className="text-sm text-gray-600">
+            <div className="surface-card rounded-2xl px-4 py-3 text-center">
+              <p className="text-base text-gray-700">
                 Nao tem conta?{" "}
                 <Link
                   to="/cadastro"
@@ -924,8 +926,8 @@ function Login({ initialTab = "login", allowTabSwitch = true }: LoginProps) {
           )}
 
           {!allowTabSwitch && tab === "register" && (
-            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-center">
-              <p className="text-sm text-gray-600">
+            <div className="surface-card rounded-2xl px-4 py-3 text-center">
+              <p className="text-base text-gray-700">
                 Ja tem conta?{" "}
                 <Link
                   to="/login"
@@ -938,8 +940,8 @@ function Login({ initialTab = "login", allowTabSwitch = true }: LoginProps) {
             </div>
           )}
 
-          <div className="rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-center">
-            <p className="text-sm text-gray-700">
+          <div className="rounded-2xl border border-accent/40 bg-gradient-to-r from-accent/15 to-accent/5 px-4 py-3 text-center shadow-[0_14px_30px_-24px_rgba(245,158,11,0.95)]">
+            <p className="text-base text-gray-700">
               E profissional?{" "}
               <button
                 onClick={() => navigate("/cadastrar-profissional")}

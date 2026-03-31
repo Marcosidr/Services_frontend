@@ -267,32 +267,32 @@ function Header() {
 
   return (
     <header className="sticky top-0 z-50" translate="no">
-      <div className="border-b border-primary/10 bg-white/90 backdrop-blur-md supports-[backdrop-filter]:bg-white/75">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-16 flex items-center justify-between gap-3">
+      <div className="border-b border-white/65 bg-white/70 shadow-[0_12px_30px_-26px_rgba(15,23,42,0.95)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/55">
+        <div className="section-container">
+          <div className="flex h-16 items-center justify-between gap-3">
             <Link to="/" className="inline-flex items-center gap-2.5 shrink-0">
-              <span className="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm">
+              <span className="animate-pulse-glow flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary/95 to-secondary text-white shadow-[0_10px_24px_-16px_rgba(29,78,216,0.9)]">
                 <MapPin className="w-4 h-4" />
               </span>
 
               <span
-                className="text-primary tracking-tight"
+                className="text-gradient-brand tracking-tight"
                 style={{ fontWeight: 800, fontSize: "1.15rem" }}
               >
-                Zen<span className="text-accent">try</span>
+                Zentry
               </span>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden items-center gap-1 rounded-2xl border border-slate-200/80 bg-white/70 px-1.5 py-1 md:flex">
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   className={({ isActive }) =>
-                    `px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                    `rounded-xl px-3.5 py-2 text-sm whitespace-nowrap ${
                       isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-gray-600 hover:text-primary hover:bg-primary/5"
+                        ? "bg-primary text-white shadow-[0_12px_24px_-16px_rgba(29,78,216,0.95)]"
+                        : "text-slate-600 hover:bg-primary/10 hover:text-primary"
                     }`
                   }
                 >
@@ -310,7 +310,7 @@ function Header() {
                         setNotificationMenuOpen((open) => !open);
                         setUserMenuOpen(false);
                       }}
-                      className="relative p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                      className="relative rounded-xl border border-transparent p-2 text-slate-500 hover:border-primary/20 hover:bg-primary/10 hover:text-primary"
                       aria-label="Notificações"
                     >
                       <Bell className="w-5 h-5" />
@@ -322,9 +322,9 @@ function Header() {
                     </button>
 
                     {notificationMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                        <div className="px-3 pb-2 flex items-center justify-between border-b border-gray-100">
-                          <p className="text-sm text-gray-800" style={{ fontWeight: 600 }}>
+                      <div className="surface-card absolute right-0 z-50 mt-2 w-80 py-2">
+                        <div className="flex items-center justify-between border-b border-slate-100 px-3 pb-2">
+                          <p className="text-sm text-slate-800" style={{ fontWeight: 600 }}>
                             Notificações
                           </p>
                           {unreadNotifications > 0 && (
@@ -352,9 +352,9 @@ function Header() {
 
                         <div className="max-h-80 overflow-y-auto">
                           {loadingNotifications ? (
-                            <p className="px-3 py-4 text-sm text-gray-500">Carregando...</p>
+                            <p className="px-3 py-4 text-sm text-slate-500">Carregando...</p>
                           ) : notifications.length === 0 ? (
-                            <p className="px-3 py-4 text-sm text-gray-500">
+                            <p className="px-3 py-4 text-sm text-slate-500">
                               Nenhuma notificação no momento.
                             </p>
                           ) : (
@@ -392,15 +392,15 @@ function Header() {
                                     setNotificationMenuOpen(false);
                                   }
                                 }}
-                                className={`w-full text-left px-3 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 ${
+                                className={`w-full border-b border-slate-100 px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-primary/5 ${
                                   notification.isRead ? "opacity-70" : ""
                                 }`}
                               >
-                                <p className="text-sm text-gray-800" style={{ fontWeight: 600 }}>
+                                <p className="text-sm text-slate-800" style={{ fontWeight: 600 }}>
                                   {notification.title}
                                 </p>
-                                <p className="text-xs text-gray-600 mt-0.5">{notification.message}</p>
-                                <p className="text-[11px] text-gray-400 mt-1">
+                                <p className="mt-0.5 text-xs text-slate-600">{notification.message}</p>
+                                <p className="mt-1 text-[11px] text-slate-400">
                                   {new Date(notification.createdAt).toLocaleString("pt-BR")}
                                 </p>
                               </button>
@@ -417,7 +417,7 @@ function Header() {
                         setUserMenuOpen((open) => !open);
                         setNotificationMenuOpen(false);
                       }}
-                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
+                      className="flex items-center gap-2 rounded-xl border border-transparent px-2.5 py-1.5 hover:border-primary/15 hover:bg-primary/10"
                     >
                       {userPhoto ? (
                         <img
@@ -432,16 +432,16 @@ function Header() {
                         </span>
                       )}
 
-                      <span className="hidden md:block text-sm text-gray-700">
+                      <span className="hidden text-sm text-slate-700 md:block">
                         {userRole === "admin" ? "Admin" : "Usuário"}
                       </span>
                     </button>
 
                     {userMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                      <div className="surface-card absolute right-0 z-50 mt-2 w-52 py-1">
                         <Link
                           to="/painel"
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/5"
                         >
                           <LayoutDashboard className="w-4 h-4" />
                           Meu Painel
@@ -450,14 +450,14 @@ function Header() {
                         {userRole === "admin" && (
                           <Link
                             to="/admin"
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-primary/5"
                           >
                             <ShieldCheck className="w-4 h-4" />
                             Admin
                           </Link>
                         )}
 
-                        <hr className="my-1 border-gray-100" />
+                        <hr className="my-1 border-slate-100" />
 
                         <Link
                           to="/login"
@@ -475,14 +475,14 @@ function Header() {
                 <div className="hidden md:flex items-center gap-2">
                   <Link
                     to="/login"
-                    className="text-sm text-gray-600 hover:text-primary px-3 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
+                    className="btn-ghost text-sm"
                   >
                     Entrar
                   </Link>
 
                   <Link
                     to="/cadastro"
-                    className="text-sm bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                    className="btn-primary text-sm"
                   >
                     Cadastrar
                   </Link>
@@ -491,7 +491,7 @@ function Header() {
 
               <button
                 onClick={() => setMenuOpen((open) => !open)}
-                className="md:hidden p-2 text-gray-500 hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                className="rounded-xl p-2 text-slate-500 hover:bg-primary/10 hover:text-primary md:hidden"
                 aria-label="Abrir menu"
               >
                 {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -502,17 +502,17 @@ function Header() {
       </div>
 
       {menuOpen && (
-        <div className="md:hidden border-b border-primary/10 bg-white/95 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-1">
+        <div className="border-b border-white/60 bg-white/90 backdrop-blur-sm md:hidden">
+          <div className="section-container flex flex-col gap-1 py-3">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  `rounded-xl px-3 py-2.5 text-sm ${
                     isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-gray-700 hover:bg-primary/5 hover:text-primary"
+                      ? "bg-primary text-white"
+                      : "text-slate-700 hover:bg-primary/10 hover:text-primary"
                   }`
                 }
               >
@@ -522,7 +522,7 @@ function Header() {
 
             <Link
               to="/profissionais"
-              className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg bg-accent text-gray-900 px-3 py-2.5 text-sm hover:bg-accent/90 transition-colors"
+              className="btn-accent mt-1 text-sm"
               style={{ fontWeight: 600 }}
             >
               <Sparkles className="w-4 h-4" />
