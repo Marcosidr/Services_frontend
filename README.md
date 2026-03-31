@@ -55,7 +55,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-Observacao: hoje ainda nao existem testes de frontend, por isso `npm run test` pode retornar "No test files found" com sucesso.
+Observacao: a base inicial de testes ja existe e os arquivos ficam em `frontend/test`.
 
 ## 7. Integracao com backend
 
@@ -66,4 +66,3 @@ http://localhost:3000
 ```
 
 Entao, para o frontend funcionar completo, o backend precisa estar rodando junto.
-
