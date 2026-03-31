@@ -421,22 +421,32 @@ function Login({ initialTab = "login", allowTabSwitch = true }: LoginProps) {
         );
       }
 
-      const nextAuthPayload: { token?: string | null; user?: AuthResponse["user"] | null } = {};
-      if (data?.token) nextAuthPayload.token = data.token;
-      if (data?.user) nextAuthPayload.user = data.user;
-      if (Object.keys(nextAuthPayload).length > 0) {
-        setAuth(nextAuthPayload);
-      }
-
-      setSuccessMessage(tab === "login" ? "Login realizado com sucesso!" : "Conta criada com sucesso!");
-
-      setTimeout(() => {
-        if (data?.user?.role === "admin") {
-          navigate("/admin");
-          return;
+      if (tab === "login") {
+        const nextAuthPayload: { token?: string | null; user?: AuthResponse["user"] | null } = {};
+        if (data?.token) nextAuthPayload.token = data.token;
+        if (data?.user) nextAuthPayload.user = data.user;
+        if (Object.keys(nextAuthPayload).length > 0) {
+          setAuth(nextAuthPayload);
         }
 
-        navigate("/");
+        setSuccessMessage("Login realizado com sucesso!");
+
+        setTimeout(() => {
+          if (data?.user?.role === "admin") {
+            navigate("/admin");
+            return;
+          }
+
+          navigate("/");
+        }, 1200);
+        return;
+      }
+
+      setAuth({ token: null, user: null });
+      setSuccessMessage("Conta criada com sucesso! Redirecionando para o login...");
+
+      setTimeout(() => {
+        navigate("/login");
       }, 1200);
     } catch (err) {
       console.error(err);

@@ -119,6 +119,18 @@ type MonthlyMetric = {
   up: boolean;
 };
 
+type DashboardAnnouncementRecipient = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+type AnnouncementRecipient = {
+  id: number;
+  name: string;
+  email: string;
+};
+
 type AdminDashboardResponse = {
   stats: AdminStats;
   pendingProfessionals: PendingProfessional[];
@@ -126,6 +138,7 @@ type AdminDashboardResponse = {
   payments: AdminPayment[];
   categoryDistribution: CategoryReport[];
   monthlyMetrics: MonthlyMetric[];
+  users?: DashboardAnnouncementRecipient[];
 };
 
 type ApiUser = {
@@ -165,6 +178,23 @@ type ApiAnnouncement = {
   createdAt: string;
 };
 
+type PaginationState = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+};
+
+type ApiPaginatedResponse<T> = {
+  items?: T[];
+  page?: number;
+  limit?: number;
+  total?: number;
+  totalPages?: number;
+  hasNext?: boolean;
+};
+
 const emptyStats: AdminStats = {
   totalUsers: 0,
   totalProfessionals: 0,
@@ -176,6 +206,10 @@ const emptyStats: AdminStats = {
   refundedAmount: 0,
   totalRevenue: 0,
 };
+
+const USERS_PAGE_LIMIT = 10;
+const CATEGORIES_PAGE_LIMIT = 10;
+const ANNOUNCEMENTS_PAGE_LIMIT = 10;
 
 function buildAuthHeaders(withJson = false): HeadersInit {
   const headers: Record<string, string> = { ...getAuthorizationHeader() };
@@ -233,6 +267,66 @@ function compact(text: string, max = 90) {
   return `${text.slice(0, max)}...`;
 }
 
+function toPositiveInteger(value: unknown, fallback: number) {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.floor(value);
+  }
+  return fallback;
+}
+
+function createInitialPagination(limit: number): PaginationState {
+  return {
+    page: 1,
+    limit,
+    total: 0,
+    totalPages: 0,
+    hasNext: false
+  };
+}
+
+function parseListResponse<T>(
+  payload: T[] | ApiPaginatedResponse<T>,
+  fallbackPage: number,
+  fallbackLimit: number
+) {
+  if (Array.isArray(payload)) {
+    const total = payload.length;
+    const totalPages = total === 0 ? 0 : 1;
+    return {
+      items: payload,
+      pagination: {
+        page: fallbackPage,
+        limit: fallbackLimit,
+        total,
+        totalPages,
+        hasNext: false
+      }
+    };
+  }
+
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  const page = toPositiveInteger(payload.page, fallbackPage);
+  const limit = toPositiveInteger(payload.limit, fallbackLimit);
+  const total =
+    typeof payload.total === "number" && Number.isFinite(payload.total) && payload.total >= 0
+      ? Math.floor(payload.total)
+      : items.length;
+  const computedTotalPages = total === 0 ? 0 : Math.ceil(total / limit);
+  const totalPages = toPositiveInteger(payload.totalPages, computedTotalPages);
+  const hasNext = typeof payload.hasNext === "boolean" ? payload.hasNext : page < totalPages;
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNext
+    }
+  };
+}
+
 function AdminPanel() {
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [searchUser, setSearchUser] = useState("");
@@ -242,6 +336,21 @@ function AdminPanel() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [announcements, setAnnouncements] = useState<AdminAnnouncement[]>([]);
+  const [announcementRecipients, setAnnouncementRecipients] = useState<
+    AnnouncementRecipient[]
+  >([]);
+  const [usersPage, setUsersPage] = useState(1);
+  const [categoriesPage, setCategoriesPage] = useState(1);
+  const [announcementsPage, setAnnouncementsPage] = useState(1);
+  const [usersPagination, setUsersPagination] = useState<PaginationState>(
+    createInitialPagination(USERS_PAGE_LIMIT)
+  );
+  const [categoriesPagination, setCategoriesPagination] = useState<PaginationState>(
+    createInitialPagination(CATEGORIES_PAGE_LIMIT)
+  );
+  const [announcementsPagination, setAnnouncementsPagination] = useState<PaginationState>(
+    createInitialPagination(ANNOUNCEMENTS_PAGE_LIMIT)
+  );
   const [professionals, setProfessionals] = useState<AdminProfessional[]>([]);
   const [payments, setPayments] = useState<AdminPayment[]>([]);
   const [categoryDistribution, setCategoryDistribution] = useState<CategoryReport[]>([]);
@@ -371,18 +480,39 @@ function AdminPanel() {
     setPayments(Array.isArray(data.payments) ? data.payments : []);
     setCategoryDistribution(Array.isArray(data.categoryDistribution) ? data.categoryDistribution : []);
     setMonthlyMetrics(Array.isArray(data.monthlyMetrics) ? data.monthlyMetrics : []);
+    setAnnouncementRecipients(
+      Array.isArray(data.users)
+        ? data.users
+            .map((user) => ({
+              id: Number(user.id),
+              name: user.name,
+              email: user.email
+            }))
+            .filter((user) => Number.isSafeInteger(user.id) && user.id > 0)
+        : []
+    );
   }
 
-  async function loadUsers() {
-    const response = await fetch("/api/users", { headers: buildAuthHeaders() });
+  async function loadUsers(targetPage = usersPage) {
+    const queryParams = new URLSearchParams({
+      page: String(targetPage),
+      limit: String(USERS_PAGE_LIMIT)
+    });
+    const response = await fetch(`/api/users?${queryParams.toString()}`, {
+      headers: buildAuthHeaders()
+    });
 
     if (!response.ok) {
       throw new Error(await readErrorMessage(response, "Nao foi possivel carregar usuarios."));
     }
 
-    const data = (await response.json()) as ApiUser[];
+    const data = (await response.json()) as ApiUser[] | ApiPaginatedResponse<ApiUser>;
+    const parsed = parseListResponse(data, targetPage, USERS_PAGE_LIMIT);
+
+    setUsersPage(parsed.pagination.page);
+    setUsersPagination(parsed.pagination);
     setUsers(
-      data.map((item) => ({
+      parsed.items.map((item) => ({
         id: Number(item.id),
         name: item.name,
         email: item.email,
@@ -402,16 +532,26 @@ function AdminPanel() {
     );
   }
 
-  async function loadCategories() {
-    const response = await fetch("/api/admin/categories", { headers: buildAuthHeaders() });
+  async function loadCategories(targetPage = categoriesPage) {
+    const queryParams = new URLSearchParams({
+      page: String(targetPage),
+      limit: String(CATEGORIES_PAGE_LIMIT)
+    });
+    const response = await fetch(`/api/admin/categories?${queryParams.toString()}`, {
+      headers: buildAuthHeaders()
+    });
 
     if (!response.ok) {
       throw new Error(await readErrorMessage(response, "Nao foi possivel carregar categorias."));
     }
 
-    const data = (await response.json()) as ApiCategory[];
+    const data = (await response.json()) as ApiCategory[] | ApiPaginatedResponse<ApiCategory>;
+    const parsed = parseListResponse(data, targetPage, CATEGORIES_PAGE_LIMIT);
+
+    setCategoriesPage(parsed.pagination.page);
+    setCategoriesPagination(parsed.pagination);
     setCategories(
-      data.map((item) => ({
+      parsed.items.map((item) => ({
         id: Number(item.id),
         slug: item.slug,
         label: item.label,
@@ -421,16 +561,27 @@ function AdminPanel() {
     );
   }
 
-  async function loadAnnouncements() {
-    const response = await fetch("/api/admin/announcements", { headers: buildAuthHeaders() });
+  async function loadAnnouncements(targetPage = announcementsPage) {
+    const queryParams = new URLSearchParams({
+      page: String(targetPage),
+      limit: String(ANNOUNCEMENTS_PAGE_LIMIT)
+    });
+    const response = await fetch(`/api/admin/announcements?${queryParams.toString()}`, {
+      headers: buildAuthHeaders()
+    });
 
     if (!response.ok) {
       throw new Error(await readErrorMessage(response, "Nao foi possivel carregar avisos."));
     }
 
-    const data = (await response.json()) as ApiAnnouncement[];
+    const data =
+      (await response.json()) as ApiAnnouncement[] | ApiPaginatedResponse<ApiAnnouncement>;
+    const parsed = parseListResponse(data, targetPage, ANNOUNCEMENTS_PAGE_LIMIT);
+
+    setAnnouncementsPage(parsed.pagination.page);
+    setAnnouncementsPagination(parsed.pagination);
     setAnnouncements(
-      data.map((item) => ({
+      parsed.items.map((item) => ({
         id: typeof item.id === "string" ? Number(item.id) : item.id,
         userId: Number(item.userId),
         userName: item.userName,
@@ -462,15 +613,15 @@ function AdminPanel() {
   }, []);
 
   useEffect(() => {
-    if (users.length === 0) {
+    if (announcementRecipients.length === 0) {
       setAnnouncementCreateForm((prev) => ({ ...prev, userId: "" }));
       return;
     }
 
     setAnnouncementCreateForm((prev) =>
-      prev.userId ? prev : { ...prev, userId: String(users[0].id) }
+      prev.userId ? prev : { ...prev, userId: String(announcementRecipients[0].id) }
     );
-  }, [users]);
+  }, [announcementRecipients]);
 
   async function approve(id: string) {
     try {
@@ -484,7 +635,7 @@ function AdminPanel() {
         throw new Error(await readErrorMessage(response, "Nao foi possivel aprovar o profissional."));
       }
 
-      await Promise.all([loadAdminDashboard(), loadUsers()]);
+      await Promise.all([loadAdminDashboard(), loadUsers(usersPage)]);
       setFeedback("Profissional aprovado com sucesso.");
     } catch (err) {
       console.error(err);
@@ -506,7 +657,7 @@ function AdminPanel() {
         throw new Error(await readErrorMessage(response, "Nao foi possivel recusar o profissional."));
       }
 
-      await Promise.all([loadAdminDashboard(), loadUsers()]);
+      await Promise.all([loadAdminDashboard(), loadUsers(usersPage)]);
       setFeedback("Profissional recusado com sucesso.");
     } catch (err) {
       console.error(err);
@@ -590,7 +741,7 @@ function AdminPanel() {
       }
 
       setUserCreateForm({ name: "", email: "", cpf: "", phone: "", password: "", role: "user" });
-      await Promise.all([loadUsers(), loadAdminDashboard()]);
+      await Promise.all([loadUsers(1), loadAdminDashboard()]);
       setFeedback("Usuario criado com sucesso.");
     } catch (err) {
       console.error(err);
@@ -653,7 +804,7 @@ function AdminPanel() {
         password: "",
         role: "user",
       });
-      await Promise.all([loadUsers(), loadAdminDashboard()]);
+      await Promise.all([loadUsers(usersPage), loadAdminDashboard()]);
       setFeedback("Usuario atualizado com sucesso.");
     } catch (err) {
       console.error(err);
@@ -683,7 +834,13 @@ function AdminPanel() {
       }
 
       if (editingUserId === user.id) setEditingUserId(null);
-      await Promise.all([loadUsers(), loadAdminDashboard(), loadAnnouncements()]);
+
+      const nextUsersPage = users.length <= 1 && usersPage > 1 ? usersPage - 1 : usersPage;
+      await Promise.all([
+        loadUsers(nextUsersPage),
+        loadAdminDashboard(),
+        loadAnnouncements(announcementsPage)
+      ]);
       setFeedback("Usuario deletado com sucesso.");
     } catch (err) {
       console.error(err);
@@ -721,7 +878,7 @@ function AdminPanel() {
       }
 
       setCategoryCreateForm({ label: "", slug: "", icon: "", is_active: true });
-      await Promise.all([loadCategories(), loadAdminDashboard()]);
+      await Promise.all([loadCategories(1), loadAdminDashboard()]);
       setFeedback("Categoria criada com sucesso.");
     } catch (err) {
       console.error(err);
@@ -761,7 +918,7 @@ function AdminPanel() {
 
       setEditingCategoryId(null);
       setCategoryEditForm({ label: "", slug: "", icon: "", is_active: true });
-      await Promise.all([loadCategories(), loadAdminDashboard()]);
+      await Promise.all([loadCategories(categoriesPage), loadAdminDashboard()]);
       setFeedback("Categoria atualizada com sucesso.");
     } catch (err) {
       console.error(err);
@@ -786,7 +943,10 @@ function AdminPanel() {
       }
 
       if (editingCategoryId === category.id) setEditingCategoryId(null);
-      await Promise.all([loadCategories(), loadAdminDashboard()]);
+
+      const nextCategoriesPage =
+        categories.length <= 1 && categoriesPage > 1 ? categoriesPage - 1 : categoriesPage;
+      await Promise.all([loadCategories(nextCategoriesPage), loadAdminDashboard()]);
       setFeedback("Categoria deletada com sucesso.");
     } catch (err) {
       console.error(err);
@@ -824,7 +984,7 @@ function AdminPanel() {
       }
 
       setAnnouncementCreateForm((prev) => ({ ...prev, title: "", message: "" }));
-      await loadAnnouncements();
+      await loadAnnouncements(1);
       setFeedback("Aviso criado com sucesso.");
     } catch (err) {
       console.error(err);
@@ -864,7 +1024,7 @@ function AdminPanel() {
 
       setEditingAnnouncementId(null);
       setAnnouncementEditForm({ userId: "", title: "", message: "" });
-      await loadAnnouncements();
+      await loadAnnouncements(announcementsPage);
       setFeedback("Aviso atualizado com sucesso.");
     } catch (err) {
       console.error(err);
@@ -889,7 +1049,12 @@ function AdminPanel() {
       }
 
       if (editingAnnouncementId === item.id) setEditingAnnouncementId(null);
-      await loadAnnouncements();
+
+      const nextAnnouncementsPage =
+        announcements.length <= 1 && announcementsPage > 1
+          ? announcementsPage - 1
+          : announcementsPage;
+      await loadAnnouncements(nextAnnouncementsPage);
       setFeedback("Aviso deletado com sucesso.");
     } catch (err) {
       console.error(err);
@@ -905,6 +1070,27 @@ function AdminPanel() {
     { label: "Pendentes", value: stats.pendingApprovals, icon: AlertTriangle },
     { label: "Receita/mes", value: stats.monthlyRevenue, icon: DollarSign },
   ];
+
+  function getPaginationLabel(pagination: PaginationState) {
+    if (pagination.total === 0) return "Pagina 0 de 0";
+    const totalPages = pagination.totalPages > 0 ? pagination.totalPages : 1;
+    return `Pagina ${pagination.page} de ${totalPages}`;
+  }
+
+  function goToUsersPage(nextPage: number) {
+    if (nextPage < 1 || nextPage === usersPage) return;
+    void loadUsers(nextPage);
+  }
+
+  function goToCategoriesPage(nextPage: number) {
+    if (nextPage < 1 || nextPage === categoriesPage) return;
+    void loadCategories(nextPage);
+  }
+
+  function goToAnnouncementsPage(nextPage: number) {
+    if (nextPage < 1 || nextPage === announcementsPage) return;
+    void loadAnnouncements(nextPage);
+  }
 
   if (loading) {
     return (
@@ -1098,7 +1284,12 @@ function AdminPanel() {
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-5 border-b border-slate-200 flex items-center gap-3">
-                <h3 className="text-slate-900 flex-1">Gerenciar usuarios</h3>
+                <div className="flex-1">
+                  <h3 className="text-slate-900">Gerenciar usuarios</h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {getPaginationLabel(usersPagination)} · Total {usersPagination.total}
+                  </p>
+                </div>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -1160,6 +1351,32 @@ function AdminPanel() {
                   </tbody>
                 </table>
               </div>
+
+              <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
+                <p className="text-xs text-slate-500">
+                  {searchUser.trim()
+                    ? "Busca aplicada na pagina atual."
+                    : `${getPaginationLabel(usersPagination)} · Total ${usersPagination.total}`}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => goToUsersPage(usersPage - 1)}
+                    disabled={usersPage <= 1}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToUsersPage(usersPage + 1)}
+                    disabled={!usersPagination.hasNext}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 disabled:opacity-40"
+                  >
+                    Proxima
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1195,7 +1412,10 @@ function AdminPanel() {
             )}
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-200"><h3 className="text-slate-900">Categorias ({categories.length})</h3></div>
+              <div className="p-5 border-b border-slate-200">
+                <h3 className="text-slate-900">Categorias ({categoriesPagination.total})</h3>
+                <p className="mt-1 text-xs text-slate-500">{getPaginationLabel(categoriesPagination)}</p>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="text-left px-5 py-3">Label</th><th className="text-left px-5 py-3">Slug</th><th className="text-left px-5 py-3">Icone</th><th className="text-left px-5 py-3">Status</th><th className="text-left px-5 py-3">Acoes</th></tr></thead>
@@ -1216,6 +1436,30 @@ function AdminPanel() {
                   </tbody>
                 </table>
               </div>
+
+              <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
+                <p className="text-xs text-slate-500">
+                  {getPaginationLabel(categoriesPagination)} · Total {categoriesPagination.total}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => goToCategoriesPage(categoriesPage - 1)}
+                    disabled={categoriesPage <= 1}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToCategoriesPage(categoriesPage + 1)}
+                    disabled={!categoriesPagination.hasNext}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 disabled:opacity-40"
+                  >
+                    Proxima
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1226,13 +1470,13 @@ function AdminPanel() {
               <h3 className="text-slate-900 mb-4">Criar aviso</h3>
               <form onSubmit={handleCreateAnnouncement} className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <select value={announcementCreateForm.userId} onChange={(event) => setAnnouncementCreateForm((prev) => ({ ...prev, userId: event.target.value }))} className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-white" disabled={users.length === 0} required>
-                    {users.length === 0 ? <option value="">Sem usuarios</option> : users.map((user) => <option key={user.id} value={user.id}>{user.name} ({user.email})</option>)}
+                  <select value={announcementCreateForm.userId} onChange={(event) => setAnnouncementCreateForm((prev) => ({ ...prev, userId: event.target.value }))} className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-white" disabled={announcementRecipients.length === 0} required>
+                    {announcementRecipients.length === 0 ? <option value="">Sem usuarios</option> : announcementRecipients.map((user) => <option key={user.id} value={user.id}>{user.name} ({user.email})</option>)}
                   </select>
                   <input value={announcementCreateForm.title} onChange={(event) => setAnnouncementCreateForm((prev) => ({ ...prev, title: event.target.value }))} placeholder="Titulo" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required />
                 </div>
                 <textarea value={announcementCreateForm.message} onChange={(event) => setAnnouncementCreateForm((prev) => ({ ...prev, message: event.target.value }))} placeholder="Mensagem" className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm min-h-[110px]" required />
-                <div className="flex justify-end"><button type="submit" disabled={announcementCreateBusy || users.length === 0} className="px-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">{announcementCreateBusy ? "Criando..." : "Criar aviso"}</button></div>
+                <div className="flex justify-end"><button type="submit" disabled={announcementCreateBusy || announcementRecipients.length === 0} className="px-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">{announcementCreateBusy ? "Criando..." : "Criar aviso"}</button></div>
               </form>
             </div>
 
@@ -1242,7 +1486,7 @@ function AdminPanel() {
                 <form onSubmit={handleUpdateAnnouncement} className="space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <select value={announcementEditForm.userId} onChange={(event) => setAnnouncementEditForm((prev) => ({ ...prev, userId: event.target.value }))} className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-white" required>
-                      {users.map((user) => <option key={user.id} value={user.id}>{user.name} ({user.email})</option>)}
+                      {announcementRecipients.map((user) => <option key={user.id} value={user.id}>{user.name} ({user.email})</option>)}
                     </select>
                     <input value={announcementEditForm.title} onChange={(event) => setAnnouncementEditForm((prev) => ({ ...prev, title: event.target.value }))} placeholder="Titulo" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required />
                   </div>
@@ -1253,7 +1497,12 @@ function AdminPanel() {
             )}
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-200"><h3 className="text-slate-900">Avisos ({announcements.length})</h3></div>
+              <div className="p-5 border-b border-slate-200">
+                <h3 className="text-slate-900">Avisos ({announcementsPagination.total})</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  {getPaginationLabel(announcementsPagination)}
+                </p>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="text-left px-5 py-3">Destino</th><th className="text-left px-5 py-3">Titulo</th><th className="text-left px-5 py-3">Mensagem</th><th className="text-left px-5 py-3">Lido</th><th className="text-left px-5 py-3">Criado em</th><th className="text-left px-5 py-3">Acoes</th></tr></thead>
@@ -1274,6 +1523,30 @@ function AdminPanel() {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-200 px-5 py-3">
+                <p className="text-xs text-slate-500">
+                  {getPaginationLabel(announcementsPagination)} · Total {announcementsPagination.total}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => goToAnnouncementsPage(announcementsPage - 1)}
+                    disabled={announcementsPage <= 1}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goToAnnouncementsPage(announcementsPage + 1)}
+                    disabled={!announcementsPagination.hasNext}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 disabled:opacity-40"
+                  >
+                    Proxima
+                  </button>
+                </div>
               </div>
             </div>
           </div>
