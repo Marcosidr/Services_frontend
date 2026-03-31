@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import SearchPage from "./pages/Search";
 import ProfessionalProfile from "./pages/ProfessionalProfile";
 import Login from "./pages/Login";
+import RegisterUser from "./pages/RegisterUser";
 import RegisterProfessional from "./pages/RegisterProfessional";
 import UserDashboard from "./pages/UserDashboard";
 import AdminPainel from "./pages/AdminPainel";
@@ -33,7 +34,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <Login />,
+    element: <Login allowTabSwitch={false} initialTab="login" />,
+  },
+  {
+    path: "/cadastro",
+    element: <RegisterUser />,
   },
   {
     path: "/cadastrar-profissional",

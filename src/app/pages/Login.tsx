@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, MapPin, Phone, AlertCircle, CheckCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { formatCep, fetchViaCep, normalizeCep, cepValido } from "../utils/cep";
@@ -10,6 +10,11 @@ import { formatPhone, getPhoneValidationError, normalizePhone } from "../utils/p
 import { fileToOptimizedDataUrl } from "../utils/image";
 
 type AuthTab = "login" | "register";
+
+type LoginProps = {
+  initialTab?: AuthTab;
+  allowTabSwitch?: boolean;
+};
 type FormField =
   | "cpf"
   | "name"
@@ -165,11 +170,11 @@ function getFirstValidationError(errors: FormErrors, tab: AuthTab) {
   return "";
 }
 
-function Login() {
+function Login({ initialTab = "login", allowTabSwitch = true }: LoginProps) {
   const navigate = useNavigate();
   const { setAuth } = useAuth();
 
-  const [tab, setTab] = useState<AuthTab>("login");
+  const [tab, setTab] = useState<AuthTab>(initialTab);
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [cpfLookupLoading, setCpfLookupLoading] = useState(false);
@@ -280,6 +285,10 @@ function Login() {
       setCpfLookupLoading(false);
     }
   };
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   useEffect(() => {
     if (tab !== "register") return;
@@ -455,37 +464,39 @@ function Login() {
         </div>
 
         <div className="bg-white rounded-2xl border border-primary/10 shadow-lg overflow-hidden">
-          <div className="flex border-b border-primary/10">
-            <button
-              onClick={() => {
-                setTab("login");
-                resetMessages();
-                resetValidationState();
-              }}
-              className={`flex-1 py-4 text-sm transition-colors ${
-                tab === "login"
-                  ? "text-primary border-b-2 border-primary bg-primary/10"
-                  : "text-gray-500 hover:text-primary"
-              }`}
-            >
-              Entrar
-            </button>
+          {allowTabSwitch && (
+            <div className="flex border-b border-primary/10">
+              <button
+                onClick={() => {
+                  setTab("login");
+                  resetMessages();
+                  resetValidationState();
+                }}
+                className={`flex-1 py-4 text-sm transition-colors ${
+                  tab === "login"
+                    ? "text-primary border-b-2 border-primary bg-primary/10"
+                    : "text-gray-500 hover:text-primary"
+                }`}
+              >
+                Entrar
+              </button>
 
-            <button
-              onClick={() => {
-                setTab("register");
-                resetMessages();
-                resetValidationState();
-              }}
-              className={`flex-1 py-4 text-sm transition-colors ${
-                tab === "register"
-                  ? "text-primary border-b-2 border-primary bg-primary/10"
-                  : "text-gray-500 hover:text-primary"
-              }`}
-            >
-              Criar conta
-            </button>
-          </div>
+              <button
+                onClick={() => {
+                  setTab("register");
+                  resetMessages();
+                  resetValidationState();
+                }}
+                className={`flex-1 py-4 text-sm transition-colors ${
+                  tab === "register"
+                    ? "text-primary border-b-2 border-primary bg-primary/10"
+                    : "text-gray-500 hover:text-primary"
+                }`}
+              >
+                Criar conta
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
             {tab === "register" && (
@@ -896,12 +907,50 @@ function Login() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-500 mt-4">
-          E profissional?{" "}
-          <button onClick={() => navigate("/cadastrar-profissional")} className="text-primary hover:underline">
-            Cadastre-se como parceiro
-          </button>
-        </p>
+        <div className="mt-5 space-y-3">
+          {!allowTabSwitch && tab === "login" && (
+            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-center">
+              <p className="text-sm text-gray-600">
+                Nao tem conta?{" "}
+                <Link
+                  to="/cadastro"
+                  className="text-primary hover:text-primary/80"
+                  style={{ fontWeight: 700 }}
+                >
+                  Criar conta
+                </Link>
+              </p>
+            </div>
+          )}
+
+          {!allowTabSwitch && tab === "register" && (
+            <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-center">
+              <p className="text-sm text-gray-600">
+                Ja tem conta?{" "}
+                <Link
+                  to="/login"
+                  className="text-primary hover:text-primary/80"
+                  style={{ fontWeight: 700 }}
+                >
+                  Entrar
+                </Link>
+              </p>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-center">
+            <p className="text-sm text-gray-700">
+              E profissional?{" "}
+              <button
+                onClick={() => navigate("/cadastrar-profissional")}
+                className="text-primary hover:text-primary/80"
+                style={{ fontWeight: 700 }}
+              >
+                Cadastre-se como parceiro
+              </button>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
