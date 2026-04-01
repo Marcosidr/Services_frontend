@@ -18,6 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { getAuthorizationHeader, getStoredUser } from "../utils/auth";
+import { cepValido, fetchViaCep, formatCep, normalizeCep } from "../utils/cep";
 
 type AdminTab =
   | "overview"
@@ -364,11 +365,20 @@ function AdminPanel() {
   const [userCreateBusy, setUserCreateBusy] = useState(false);
   const [userUpdateBusy, setUserUpdateBusy] = useState(false);
   const [userDeleteId, setUserDeleteId] = useState<number | null>(null);
+  const [createUserCepLookupLoading, setCreateUserCepLookupLoading] = useState(false);
   const [userCreateForm, setUserCreateForm] = useState({
     name: "",
     email: "",
     cpf: "",
     phone: "",
+    cep: "",
+    endereco: "",
+    numero: "",
+    complemento: "",
+    bairro: "",
+    cidade: "",
+    uf: "",
+    estado: "",
     password: "",
     role: "user" as UserRole,
   });
@@ -460,6 +470,10 @@ function AdminPanel() {
     if (editingAnnouncementId === null) return null;
     return announcements.find((item) => item.id === editingAnnouncementId) ?? null;
   }, [editingAnnouncementId, announcements]);
+
+  const shouldRequireCreateAddress = useMemo(() => {
+    return normalizeCep(userCreateForm.cep).length > 0;
+  }, [userCreateForm.cep]);
 
   async function loadAdminDashboard() {
     const response = await fetch("/api/admin/dashboard", {
@@ -704,6 +718,39 @@ function AdminPanel() {
     });
   }
 
+  async function handleCreateUserCepBlur() {
+    const normalizedCep = normalizeCep(userCreateForm.cep);
+    if (!normalizedCep) return;
+    if (!cepValido(normalizedCep)) {
+      setFeedback("CEP invalido. Informe 8 digitos.");
+      return;
+    }
+
+    try {
+      setCreateUserCepLookupLoading(true);
+      const enderecoViaCep = await fetchViaCep(normalizedCep);
+      if (!enderecoViaCep) {
+        setFeedback("CEP nao encontrado.");
+        return;
+      }
+
+      setUserCreateForm((prev) => ({
+        ...prev,
+        cep: formatCep(normalizedCep),
+        endereco: enderecoViaCep.logradouro || prev.endereco,
+        bairro: enderecoViaCep.bairro || prev.bairro,
+        cidade: enderecoViaCep.localidade || prev.cidade,
+        uf: enderecoViaCep.uf || prev.uf,
+        estado: enderecoViaCep.estado || prev.estado,
+        complemento: prev.complemento || enderecoViaCep.complemento || ""
+      }));
+    } catch {
+      setFeedback("Falha ao buscar CEP.");
+    } finally {
+      setCreateUserCepLookupLoading(false);
+    }
+  }
+
   async function handleCreateUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -711,22 +758,53 @@ function AdminPanel() {
       setFeedback("Perfil professional nao pode ser definido manualmente no painel.");
       return;
     }
-    const payload: Record<string, unknown> = {
-      name: userCreateForm.name.trim(),
-      email: userCreateForm.email.trim(),
-      cpf: userCreateForm.cpf.trim(),
-      password: userCreateForm.password.trim(),
-      role: userCreateForm.role,
-    };
 
-    if (userCreateForm.phone.trim()) {
-      payload.phone = userCreateForm.phone.trim();
-    }
+    const name = userCreateForm.name.trim();
+    const email = userCreateForm.email.trim();
+    const cpf = userCreateForm.cpf.trim();
+    const phone = userCreateForm.phone.trim();
+    const password = userCreateForm.password.trim();
+    const cep = normalizeCep(userCreateForm.cep);
+    const endereco = userCreateForm.endereco.trim();
+    const numero = userCreateForm.numero.trim();
+    const complemento = userCreateForm.complemento.trim();
+    const bairro = userCreateForm.bairro.trim();
+    const cidade = userCreateForm.cidade.trim();
+    const uf = userCreateForm.uf.trim().toUpperCase();
+    const estado = userCreateForm.estado.trim();
 
-    if (!payload.name || !payload.email || !payload.cpf || !payload.password) {
-      setFeedback("Preencha nome, email, CPF e senha para criar usuario.");
+    if (!name || !email || !cpf || !phone || !password) {
+      setFeedback("Preencha nome, email, CPF, telefone e senha para criar usuario.");
       return;
     }
+
+    if (cep && !cepValido(cep)) {
+      setFeedback("CEP invalido. Informe 8 digitos.");
+      return;
+    }
+
+    if (cep && (!endereco || !numero || !bairro || !cidade || !uf)) {
+      setFeedback("Com CEP informado, endereco, numero, bairro, cidade e UF sao obrigatorios.");
+      return;
+    }
+
+    const payload: Record<string, unknown> = {
+      name,
+      email,
+      cpf,
+      phone,
+      password,
+      role: userCreateForm.role
+    };
+
+    if (cep) payload.cep = cep;
+    if (endereco) payload.endereco = endereco;
+    if (numero) payload.numero = numero;
+    if (complemento) payload.complemento = complemento;
+    if (bairro) payload.bairro = bairro;
+    if (cidade) payload.cidade = cidade;
+    if (uf) payload.uf = uf;
+    if (estado) payload.estado = estado;
 
     try {
       setUserCreateBusy(true);
@@ -740,7 +818,22 @@ function AdminPanel() {
         throw new Error(await readErrorMessage(response, "Nao foi possivel criar usuario."));
       }
 
-      setUserCreateForm({ name: "", email: "", cpf: "", phone: "", password: "", role: "user" });
+      setUserCreateForm({
+        name: "",
+        email: "",
+        cpf: "",
+        phone: "",
+        cep: "",
+        endereco: "",
+        numero: "",
+        complemento: "",
+        bairro: "",
+        cidade: "",
+        uf: "",
+        estado: "",
+        password: "",
+        role: "user"
+      });
       await Promise.all([loadUsers(1), loadAdminDashboard()]);
       setFeedback("Usuario criado com sucesso.");
     } catch (err) {
@@ -1227,7 +1320,15 @@ function AdminPanel() {
                 <input value={userCreateForm.name} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Nome" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required />
                 <input value={userCreateForm.email} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, email: event.target.value }))} placeholder="Email" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required />
                 <input value={userCreateForm.cpf} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, cpf: event.target.value }))} placeholder="CPF" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required />
-                <input value={userCreateForm.phone} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, phone: event.target.value }))} placeholder="Telefone (opcional)" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" />
+                <input value={userCreateForm.phone} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, phone: event.target.value }))} placeholder="Telefone" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required />
+                <input value={userCreateForm.cep} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, cep: formatCep(event.target.value) }))} onBlur={() => { void handleCreateUserCepBlur(); }} placeholder="CEP" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" />
+                <input value={userCreateForm.endereco} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, endereco: event.target.value }))} placeholder="Endereco" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required={shouldRequireCreateAddress} />
+                <input value={userCreateForm.numero} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, numero: event.target.value }))} placeholder="Numero" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required={shouldRequireCreateAddress} />
+                <input value={userCreateForm.complemento} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, complemento: event.target.value }))} placeholder="Complemento" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" />
+                <input value={userCreateForm.bairro} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, bairro: event.target.value }))} placeholder="Bairro" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required={shouldRequireCreateAddress} />
+                <input value={userCreateForm.cidade} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, cidade: event.target.value }))} placeholder="Cidade" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required={shouldRequireCreateAddress} />
+                <input value={userCreateForm.uf} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, uf: event.target.value.toUpperCase() }))} placeholder="UF" maxLength={2} className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required={shouldRequireCreateAddress} />
+                <input value={userCreateForm.estado} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, estado: event.target.value }))} placeholder="Estado" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" />
                 <input type="password" value={userCreateForm.password} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, password: event.target.value }))} placeholder="Senha" className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm" required />
                 <select value={userCreateForm.role} onChange={(event) => setUserCreateForm((prev) => ({ ...prev, role: event.target.value as UserRole }))} className="px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-white">
                   <option value="user">user</option>
@@ -1235,7 +1336,9 @@ function AdminPanel() {
                 </select>
                 <div className="md:col-span-2 xl:col-span-3 flex items-center justify-between gap-3">
                   <p className="text-xs text-slate-500">
-                    Regra: email e CPF sao bloqueados na edicao. Cadastro profissional deve usar o fluxo de profissionais.
+                    {createUserCepLookupLoading
+                      ? "Buscando endereco pelo CEP..."
+                      : "Regra: telefone e obrigatorio. Se CEP for informado, endereco, numero, bairro, cidade e UF sao obrigatorios."}
                   </p>
                   <button type="submit" disabled={userCreateBusy} className="px-4 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60">
                     {userCreateBusy ? "Criando..." : "Criar usuario"}
