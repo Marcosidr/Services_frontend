@@ -7,7 +7,16 @@ import {
   Shield,
   Clock,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+  Headphones,
+  Home as HomeIcon,
+  PlugZap,
+  Star,
+  TimerReset,
+  Wrench,
+  Zap
 } from "lucide-react";
 import { ProfessionalCard } from "../componentes/ProfessionalCard";
 import {
@@ -35,6 +44,81 @@ function getCategoryBadge(label: string) {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
+
+const serviceHighlights = [
+  {
+    icon: <Wrench className="w-5 h-5" />,
+    title: "Manutencao residencial",
+    desc: "Reparos, instalacoes e ajustes com profissionais organizados por regiao."
+  },
+  {
+    icon: <PlugZap className="w-5 h-5" />,
+    title: "Assistencia tecnica",
+    desc: "Atendimento para eletrica, equipamentos, pequenos consertos e suporte rapido."
+  },
+  {
+    icon: <HomeIcon className="w-5 h-5" />,
+    title: "Servicos para o lar",
+    desc: "Categorias claras para encontrar a pessoa certa sem perder tempo."
+  }
+];
+
+const benefits = [
+  {
+    value: "24h",
+    label: "Fluxo simples para pedir ajuda",
+    icon: <TimerReset className="w-5 h-5" />
+  },
+  {
+    value: "100%",
+    label: "Experiencia digital e organizada",
+    icon: <Sparkles className="w-5 h-5" />
+  },
+  {
+    value: "3x",
+    label: "Menos etapas ate falar com um profissional",
+    icon: <Zap className="w-5 h-5" />
+  }
+];
+
+const flowSteps = [
+  {
+    step: "01",
+    title: "Informe o servico",
+    desc: "Pesquise pelo que precisa ou escolha uma categoria disponivel."
+  },
+  {
+    step: "02",
+    title: "Compare profissionais",
+    desc: "Veja distancia, disponibilidade, avaliacoes e especialidades."
+  },
+  {
+    step: "03",
+    title: "Chame com seguranca",
+    desc: "Acesse o perfil e avance para atendimento com mais confianca."
+  }
+];
+
+const testimonials = [
+  {
+    name: "Marina Costa",
+    role: "Cliente residencial",
+    text: "Encontrei um tecnico disponivel perto de casa e consegui comparar as opcoes sem confusao.",
+    initials: "MC"
+  },
+  {
+    name: "Rafael Nunes",
+    role: "Condominio",
+    text: "A interface passa confianca e deixa claro quem esta disponivel para resolver rapido.",
+    initials: "RN"
+  },
+  {
+    name: "Bianca Torres",
+    role: "Profissional cadastrada",
+    text: "O cadastro ficou com aparencia profissional e ajuda o cliente a entender meu atendimento.",
+    initials: "BT"
+  }
+];
 
 function Home() {
   const navigate = useNavigate();
@@ -242,34 +326,39 @@ function Home() {
   }
 
   return (
-    <div className="page-shell">
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary via-blue-700 to-secondary text-white">
-        <div className="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-accent/30 blur-3xl" />
-        <div className="section-container relative pt-12 pb-16">
-          <div className="max-w-2xl animate-fade-up">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-3 py-1 text-sm backdrop-blur-sm">
+    <div className="page-shell overflow-hidden">
+      <section className="premium-hero relative overflow-hidden text-white">
+        <div className="premium-grid-overlay" />
+        <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-primary/35 blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-24 h-72 w-72 rounded-full bg-secondary/30 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
+
+        <div className="section-container relative grid min-h-[calc(100vh-4rem)] items-center gap-10 py-12 lg:grid-cols-[1.04fr_0.96fr] lg:py-16">
+          <div className="max-w-3xl animate-fade-up">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm text-blue-50 shadow-[0_18px_45px_-34px_rgba(255,255,255,0.75)] backdrop-blur-xl">
               <MapPin className="w-3.5 h-3.5" />
-              <span>Encontre profissionais perto de voce</span>
+              <span>Servicos residenciais com atendimento inteligente</span>
             </div>
 
             <h1
-              className="mb-4 text-3xl text-white md:text-5xl"
-              style={{ fontWeight: 700, lineHeight: 1.2 }}
+              className="mb-5 text-4xl text-white sm:text-5xl lg:text-6xl"
+              style={{ fontWeight: 800, lineHeight: 1.04 }}
             >
-              Encontre o profissional <span className="text-accent">certo</span> perto de voce
+              Busque o que precisa aqui na{" "}
+              <span className="text-gradient-brand">ZENTRY</span>
             </h1>
 
-            <p className="mb-8 text-lg text-white/90">
-              Conectamos voce com profissionais verificados e organizamos as
-              opcoes para voce escolher com seguranca.
+            <p className="mb-8 max-w-2xl text-base leading-8 text-blue-50/88 md:text-lg">
+              Encontre profissionais perto de voce, compare opcoes com clareza e
+              avance para o atendimento com uma experiencia moderna, segura e
+              organizada.
             </p>
 
             {!locationGranted ? (
               <button
                 onClick={handleLocationRequest}
                 disabled={locationLoading}
-                className="mb-5 flex items-center gap-2 rounded-xl border border-white/45 bg-white/15 px-4 py-2.5 text-white backdrop-blur-md hover:-translate-y-0.5 hover:bg-white/25"
+                className="mb-5 flex items-center gap-2 rounded-2xl border border-white/25 bg-white/12 px-4 py-2.5 text-white shadow-[0_18px_35px_-28px_rgba(255,255,255,0.9)] backdrop-blur-xl hover:-translate-y-0.5 hover:bg-white/18"
               >
                 {locationLoading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -281,7 +370,7 @@ function Home() {
                   : "Usar minha localizacao atual"}
               </button>
             ) : (
-              <div className="flex items-center gap-2 text-green-200 mb-5">
+              <div className="mb-5 flex items-center gap-2 rounded-full text-emerald-200">
                 <MapPin className="w-4 h-4" />
                 <span className="text-sm">
                   Localizacao autorizada
@@ -294,7 +383,7 @@ function Home() {
 
             {menuMessage && <p className="text-sm text-accent mb-3">{menuMessage}</p>}
 
-            <form onSubmit={handleSearch} className="hero-glass flex gap-3 p-2.5 shadow-[0_24px_60px_-28px_rgba(2,6,23,0.75)]">
+            <form onSubmit={handleSearch} className="hero-glass flex flex-col gap-3 p-2.5 shadow-[0_30px_80px_-42px_rgba(2,6,23,0.95)] sm:flex-row">
               <div className="flex-1 relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -302,7 +391,7 @@ function Home() {
                   placeholder="Qual servico voce precisa?"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  className="w-full rounded-xl border border-white/70 bg-white pl-11 pr-4 py-3.5 text-gray-800 placeholder-gray-400 outline-none"
+                  className="w-full rounded-2xl border border-white/70 bg-white pl-11 pr-4 py-3.5 text-gray-800 placeholder-gray-400 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
                 />
               </div>
               <button
@@ -310,20 +399,95 @@ function Home() {
                 className="btn-accent whitespace-nowrap px-6 py-3.5"
               >
                 Buscar
+                <ArrowRight className="w-4 h-4" />
               </button>
             </form>
+
+            <div className="mt-8 grid grid-cols-3 gap-3 sm:max-w-xl">
+              {[
+                { value: professionals.length || "50+", label: "profissionais" },
+                { value: onlineCount || "agora", label: "disponiveis" },
+                { value: categories.length || "multi", label: "categorias" }
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-xl">
+                  <p className="text-xl text-white sm:text-2xl" style={{ fontWeight: 800 }}>
+                    {stat.value}
+                  </p>
+                  <p className="mt-1 text-xs text-blue-100/80">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative animate-fade-up animate-fade-up-delay-2">
+            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-primary/35 via-secondary/25 to-accent/25 blur-2xl" />
+            <div className="premium-device relative overflow-hidden rounded-[2rem] border border-white/20 bg-white/12 p-4 shadow-[0_35px_90px_-42px_rgba(0,0,0,0.95)] backdrop-blur-2xl">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase text-blue-100/70">Zentry OS</p>
+                  <h2 className="text-xl text-white">Central de atendimento</h2>
+                </div>
+                <div className="rounded-full border border-emerald-300/30 bg-emerald-400/15 px-3 py-1 text-xs text-emerald-100">
+                  online
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                {serviceHighlights.map((service, index) => (
+                  <div
+                    key={service.title}
+                    className="premium-dashboard-card animate-float-slow"
+                    style={{ animationDelay: `${index * 0.8}s` }}
+                  >
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-primary">
+                      {service.icon}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-white" style={{ fontWeight: 700 }}>
+                        {service.title}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-blue-50/75">{service.desc}</p>
+                    </div>
+
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-secondary" />
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-3xl border border-white/12 bg-white/10 p-4">
+                  <p className="text-3xl text-white" style={{ fontWeight: 800 }}>4.9</p>
+                  <div className="mt-2 flex gap-0.5 text-accent">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star key={index} className="h-3.5 w-3.5 fill-current" />
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-blue-50/70">media de confianca</p>
+                </div>
+                <div className="rounded-3xl border border-white/12 bg-white/10 p-4">
+                  <p className="text-3xl text-white" style={{ fontWeight: 800 }}>15min</p>
+                  <p className="mt-2 text-xs leading-5 text-blue-50/70">para encontrar uma opcao perto de voce</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="border-b border-white/70 bg-white/60 backdrop-blur-md">
-        <div className="section-container py-6">
-          <div className="flex items-center justify-between mb-4">
+      <section className="relative border-b border-white/70 bg-white/55 backdrop-blur-md dark:bg-white/[0.03]">
+        <div className="section-container py-10">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-primary/70">
-                Categorias
+              <p className="premium-eyebrow">
+                Servicos
               </p>
-              <h2 className="text-gray-900">Escolha o tipo de servico</h2>
+              <h2 className="text-2xl text-gray-950 dark:text-white md:text-3xl">
+                Escolha o tipo de atendimento
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-300">
+                Categorias dinâmicas do sistema com uma leitura mais clara e visual premium.
+              </p>
             </div>
 
             {activeCategory && (
@@ -354,22 +518,22 @@ function Home() {
                       key={category.id}
                       onClick={() => handleCategory(category.id)}
                       className={`
-                        w-[190px] rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5
+                        group w-[210px] rounded-3xl border p-4 text-left transition-all hover:-translate-y-1
                         ${
                           isActive
-                            ? "border-primary bg-primary text-white shadow-[0_16px_36px_-24px_rgba(29,78,216,0.95)]"
-                            : "border-slate-200 bg-white/85 text-slate-800 hover:border-primary/35 hover:bg-white"
+                            ? "border-primary bg-gradient-to-br from-primary to-secondary text-white shadow-[0_22px_50px_-28px_rgba(29,78,216,0.95)]"
+                            : "border-white/80 bg-white/85 text-slate-800 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.45)] backdrop-blur-xl hover:border-primary/35 hover:bg-white dark:border-white/10 dark:bg-white/[0.06] dark:text-white"
                         }
                       `}
                     >
                       <div className="flex items-center justify-between mb-3">
                         <span
                           className={`
-                            w-10 h-10 rounded-xl flex items-center justify-center text-sm
+                            flex h-11 w-11 items-center justify-center rounded-2xl text-sm transition-transform group-hover:scale-105
                             ${
                               isActive
                                 ? "bg-white/20 text-white"
-                                : "bg-primary/10 text-primary"
+                                : "bg-primary/10 text-primary dark:bg-white/10 dark:text-blue-200"
                             }
                           `}
                           style={{ fontWeight: 700 }}
@@ -381,7 +545,7 @@ function Home() {
                       </div>
 
                       <p
-                        className={`${isActive ? "text-white" : "text-gray-900"}`}
+                        className={`${isActive ? "text-white" : "text-gray-900 dark:text-white"}`}
                         style={{ fontWeight: 600 }}
                       >
                         {category.label}
@@ -399,10 +563,11 @@ function Home() {
         </div>
       </section>
 
-      <section className="section-container py-8">
-        <div className="flex items-center justify-between mb-4">
+      <section className="section-container py-12">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-gray-900">Profissionais</h2>
+            <p className="premium-eyebrow">Atendimento rapido</p>
+            <h2 className="text-2xl text-gray-950 dark:text-white md:text-3xl">Profissionais em destaque</h2>
 
             {loadingData ? (
               <p className="text-sm text-gray-500 mt-1">Carregando profissionais...</p>
@@ -462,11 +627,18 @@ function Home() {
         )}
       </section>
 
-      <section className="mt-6 border-y border-white/75 bg-white/65">
-        <div className="section-container py-12">
-          <h2 className="text-center text-gray-900 mb-10">
-            Por que usar a plataforma?
-          </h2>
+      <section className="relative border-y border-white/75 bg-white/65 dark:bg-white/[0.03]">
+        <div className="section-container py-16">
+          <div className="mx-auto mb-10 max-w-3xl text-center">
+            <p className="premium-eyebrow justify-center">Beneficios</p>
+            <h2 className="mt-2 text-3xl text-gray-950 dark:text-white md:text-4xl">
+              Confiança, tecnologia e agilidade no mesmo fluxo
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-slate-500 dark:text-slate-300">
+              A experiencia foi pensada para transmitir organizacao e reduzir atrito
+              entre cliente e profissional.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -491,34 +663,137 @@ function Home() {
             ].map((feature, index) => (
               <div
                 key={index}
-                className="surface-card flex flex-col items-center p-6 text-center"
+                className="surface-card group flex flex-col items-center p-6 text-center hover:-translate-y-1 hover:border-primary/20"
               >
                 <div
-                  className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-4`}
+                  className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${feature.bg} transition-transform group-hover:scale-105`}
                 >
                   {feature.icon}
                 </div>
-                <h3 className="text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
+                <h3 className="text-gray-900 mb-2 dark:text-white">{feature.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed dark:text-slate-300">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {benefits.map((benefit) => (
+              <div key={benefit.label} className="premium-metric">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  {benefit.icon}
+                </div>
+                <div>
+                  <p className="text-3xl text-gray-950 dark:text-white" style={{ fontWeight: 800 }}>
+                    {benefit.value}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">{benefit.label}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-14">
+      <section className="section-container py-16">
+        <div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+          <div>
+            <p className="premium-eyebrow">Como funciona</p>
+            <h2 className="mt-2 text-3xl text-gray-950 dark:text-white md:text-4xl">
+              Um caminho claro do problema ate o atendimento
+            </h2>
+            <p className="mt-4 text-sm leading-7 text-slate-500 dark:text-slate-300">
+              A navegacao prioriza decisao rapida: buscar, comparar e chamar.
+              Cada etapa reforca seguranca e reduz duvidas.
+            </p>
+          </div>
+
+          <div className="relative">
+            <div className="absolute left-6 top-8 hidden h-[calc(100%-4rem)] w-px bg-gradient-to-b from-primary via-secondary to-accent md:block" />
+            <div className="grid gap-4">
+              {flowSteps.map((item) => (
+                <div key={item.step} className="surface-card relative grid gap-3 p-5 md:grid-cols-[4rem_1fr]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-secondary text-white shadow-[0_18px_35px_-22px_rgba(29,78,216,0.9)]">
+                    {item.step}
+                  </div>
+                  <div>
+                    <h3 className="text-gray-950 dark:text-white">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-300">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-white/75 bg-white/55 dark:bg-white/[0.03]">
+        <div className="section-container py-16">
+          <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="premium-eyebrow">Depoimentos</p>
+              <h2 className="mt-2 text-3xl text-gray-950 dark:text-white md:text-4xl">
+                Uma experiencia que transmite organizacao
+              </h2>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm text-primary">
+              <Headphones className="w-4 h-4" />
+              Suporte e atendimento humanizado
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {testimonials.map((testimonial) => (
+              <article key={testimonial.name} className="surface-card p-5">
+                <div className="mb-4 flex items-center gap-1 text-accent">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star key={index} className="h-4 w-4 fill-current" />
+                  ))}
+                </div>
+                <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
+                  "{testimonial.text}"
+                </p>
+                <div className="mt-5 flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-sm text-white" style={{ fontWeight: 800 }}>
+                    {testimonial.initials}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-950 dark:text-white" style={{ fontWeight: 700 }}>
+                      {testimonial.name}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{testimonial.role}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16">
         <div className="section-container">
-          <div className="surface-card-strong mx-auto max-w-3xl px-4 py-12 text-center">
-          <h2 className="text-gray-900 mb-3">Voce e um profissional?</h2>
-          <p className="text-gray-500 mb-6">
-            Cadastre-se e comece a receber solicitacoes de clientes.
-          </p>
-          <button
-            onClick={() => navigate("/cadastrar-profissional")}
-            className="btn-accent px-8 py-3.5"
-          >
-            Quero me cadastrar
-          </button>
+          <div className="premium-cta relative overflow-hidden rounded-[2rem] px-5 py-12 text-center text-white md:px-10 md:py-16">
+            <div className="pointer-events-none absolute -left-16 top-0 h-56 w-56 rounded-full bg-white/18 blur-3xl" />
+            <div className="pointer-events-none absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-accent/25 blur-3xl" />
+            <div className="relative mx-auto max-w-3xl">
+              <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs uppercase text-blue-50">
+                <Shield className="w-3.5 h-3.5" />
+                Cresca com uma vitrine mais profissional
+              </p>
+              <h2 className="mb-3 text-3xl text-white md:text-5xl">
+                Voce e um profissional?
+              </h2>
+              <p className="mx-auto mb-7 max-w-xl text-sm leading-7 text-blue-50/85 md:text-base">
+                Cadastre-se e comece a receber solicitacoes de clientes com uma
+                presenca digital mais moderna, confiavel e organizada.
+              </p>
+              <button
+                onClick={() => navigate("/cadastrar-profissional")}
+                className="btn-accent px-8 py-3.5"
+              >
+                Quero me cadastrar
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </section>

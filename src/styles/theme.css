@@ -48,13 +48,13 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.145 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: #60a5fa;
-  --primary-foreground: #0b1220;
-  --secondary: #2dd4bf;
-  --secondary-foreground: #062323;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --secondary: #0ea5a4;
+  --secondary-foreground: #ffffff;
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: #fbbf24;
+  --accent: #f59e0b;
   --accent-foreground: #111827;
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
@@ -179,12 +179,19 @@
     background-attachment: fixed;
   }
 
+  .dark body {
+    background-image:
+      radial-gradient(circle at 0% 0%, rgba(29, 78, 216, 0.18) 0%, transparent 34%),
+      radial-gradient(circle at 100% 16%, rgba(14, 165, 164, 0.14) 0%, transparent 30%),
+      linear-gradient(180deg, oklch(0.145 0 0) 0%, #0c1220 54%, oklch(0.145 0 0) 100%);
+  }
+
   h1,
   h2,
   h3,
   h4 {
     font-family: "Sora", "Manrope", "Segoe UI", sans-serif;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 
   h1 {
@@ -257,15 +264,15 @@
   }
 
   .surface-card {
-    @apply rounded-3xl border border-white/70 bg-white/85 shadow-[0_22px_50px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl;
+    @apply rounded-3xl border border-white/70 bg-white/85 shadow-[0_22px_50px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_22px_50px_-34px_rgba(0,0,0,0.85)];
   }
 
   .surface-card-strong {
-    @apply rounded-3xl border border-primary/15 bg-white shadow-[0_26px_65px_-36px_rgba(15,23,42,0.55)];
+    @apply rounded-3xl border border-primary/15 bg-white shadow-[0_26px_65px_-36px_rgba(15,23,42,0.55)] dark:border-white/10 dark:bg-white/[0.08];
   }
 
   .hero-glass {
-    @apply rounded-3xl border border-white/30 bg-white/10 backdrop-blur-md;
+    @apply rounded-3xl border border-white/25 bg-white/10 backdrop-blur-xl;
   }
 
   .chip-badge {
@@ -290,6 +297,64 @@
 
   .input-surface {
     @apply rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] outline-none transition focus:border-primary/45 focus:ring-2 focus:ring-primary/20;
+  }
+
+  .premium-hero {
+    background:
+      linear-gradient(135deg, rgba(4, 10, 27, 0.96) 0%, rgba(29, 78, 216, 0.96) 50%, rgba(14, 165, 164, 0.92) 100%);
+  }
+
+  .premium-grid-overlay {
+    @apply pointer-events-none absolute inset-0 opacity-40;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(180deg, black 0%, transparent 82%);
+  }
+
+  .premium-device {
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.07)),
+      linear-gradient(180deg, rgba(29, 78, 216, 0.16), rgba(14, 165, 164, 0.1));
+  }
+
+  .premium-dashboard-card {
+    @apply flex items-center gap-3 rounded-3xl border border-white/15 bg-white/10 p-4 shadow-[0_18px_45px_-34px_rgba(0,0,0,0.9)] backdrop-blur-xl transition-transform hover:-translate-y-1 hover:bg-white/15;
+  }
+
+  .premium-service-card {
+    @apply relative flex min-h-32 flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl border border-white/15 bg-white/10 p-4 text-center shadow-[0_18px_45px_-34px_rgba(0,0,0,0.9)] backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-white/25 hover:bg-white/15;
+  }
+
+  .premium-service-card::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent;
+  }
+
+  .premium-service-card-featured {
+    @apply border-white/25 bg-white/[0.14];
+    box-shadow: 0 26px 64px -42px rgba(0, 0, 0, 0.95);
+  }
+
+  .premium-service-icon {
+    @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_18px_34px_-20px_rgba(0,0,0,0.85)];
+  }
+
+  .premium-eyebrow {
+    @apply inline-flex items-center gap-2 text-xs uppercase text-primary;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+
+  .premium-metric {
+    @apply flex items-center gap-4 rounded-3xl border border-white/80 bg-white/80 p-5 shadow-[0_22px_55px_-38px_rgba(15,23,42,0.5)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06];
+  }
+
+  .premium-cta {
+    background:
+      linear-gradient(135deg, rgba(29, 78, 216, 0.98) 0%, rgba(14, 165, 164, 0.94) 64%, rgba(245, 158, 11, 0.92) 140%);
+    box-shadow: 0 34px 80px -46px rgba(29, 78, 216, 0.95);
   }
 }
 
